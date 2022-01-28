@@ -1,12 +1,46 @@
 use trace_exporters::TracingConfig;
 use trogging::cli::LoggingConfig;
 
-use crate::{
-    clap_blocks::{
-        object_store::ObjectStoreConfig, server_id::ServerIdConfig, socket_addr::SocketAddr,
-    },
-    influxdb_ioxd::serving_readiness::ServingReadinessState,
-};
+use crate::{object_store::ObjectStoreConfig, server_id::ServerIdConfig, socket_addr::SocketAddr};
+
+#[derive(Debug, Clone)]
+pub enum ServingReadinessState {
+    Unavailable,
+    Serving,
+}
+
+impl std::str::FromStr for ServingReadinessState {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_lowercase().as_str() {
+            "unavailable" => Ok(Self::Unavailable),
+            "serving" => Ok(Self::Serving),
+            _ => Err(format!(
+                "Invalid serving readiness format '{}'. Valid options: unavailable, serving",
+                s
+            )),
+        }
+    }
+}
+
+impl From<bool> for ServingReadinessState {
+    fn from(v: bool) -> Self {
+        match v {
+            true => Self::Serving,
+            false => Self::Unavailable,
+        }
+    }
+}
+
+impl From<ServingReadinessState> for bool {
+    fn from(state: ServingReadinessState) -> Self {
+        match state {
+            ServingReadinessState::Unavailable => false,
+            ServingReadinessState::Serving => true,
+        }
+    }
+}
 
 /// The default bind address for the HTTP API.
 pub const DEFAULT_API_BIND_ADDR: &str = "127.0.0.1:8080";
@@ -19,15 +53,15 @@ pub const DEFAULT_GRPC_BIND_ADDR: &str = "127.0.0.1:8082";
 pub struct RunConfig {
     /// logging options
     #[clap(flatten)]
-    pub(crate) logging_config: LoggingConfig,
+    pub logging_config: LoggingConfig,
 
     /// tracing options
     #[clap(flatten)]
-    pub(crate) tracing_config: TracingConfig,
+    pub tracing_config: TracingConfig,
 
-    /// object store config
+    /// server ID config
     #[clap(flatten)]
-    pub(crate) server_id_config: ServerIdConfig,
+    pub server_id_config: ServerIdConfig,
 
     /// The address on which IOx will serve HTTP API requests.
     #[clap(
@@ -64,5 +98,5 @@ pub struct RunConfig {
 
     /// object store config
     #[clap(flatten)]
-    pub(crate) object_store_config: ObjectStoreConfig,
+    pub object_store_config: ObjectStoreConfig,
 }

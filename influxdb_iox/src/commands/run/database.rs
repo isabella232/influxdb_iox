@@ -1,20 +1,17 @@
 //! Implementation of command line option for running server
 
-use std::sync::Arc;
-
-use crate::{
-    clap_blocks::{boolean_flag::BooleanFlag, run_config::RunConfig},
-    influxdb_ioxd::{
-        self,
-        server_type::{
-            common_state::{CommonServerState, CommonServerStateError},
-            database::{
-                setup::{make_application, make_server},
-                DatabaseServerType,
-            },
+use crate::influxdb_ioxd::{
+    self,
+    server_type::{
+        common_state::{CommonServerState, CommonServerStateError},
+        database::{
+            setup::{make_application, make_server},
+            DatabaseServerType,
         },
     },
 };
+use iox_clap_blocks::{boolean_flag::BooleanFlag, run_config::RunConfig};
+use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

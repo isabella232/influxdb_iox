@@ -1775,6 +1775,7 @@ dependencies = [
  "ingester",
  "internal_types",
  "iox_catalog",
+ "iox_clap_blocks",
  "iox_object_store",
  "itertools",
  "job_registry",
@@ -1985,6 +1986,23 @@ dependencies = [
  "snafu",
  "sqlx",
  "tokio",
+ "uuid",
+ "workspace-hack",
+]
+
+[[package]]
+name = "iox_clap_blocks"
+version = "0.1.0"
+dependencies = [
+ "clap 3.0.13",
+ "data_types",
+ "futures",
+ "object_store",
+ "observability_deps",
+ "snafu",
+ "tempfile",
+ "trace_exporters",
+ "trogging",
  "uuid",
  "workspace-hack",
 ]

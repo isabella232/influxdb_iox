@@ -1,18 +1,14 @@
 //! Implementation of command line option for running router2
 
-use std::{collections::BTreeSet, sync::Arc};
-
-use crate::{
-    clap_blocks::run_config::RunConfig,
-    influxdb_ioxd::{
-        self,
-        server_type::{
-            common_state::{CommonServerState, CommonServerStateError},
-            router2::RouterServerType,
-        },
+use crate::influxdb_ioxd::{
+    self,
+    server_type::{
+        common_state::{CommonServerState, CommonServerStateError},
+        router2::RouterServerType,
     },
 };
 use data_types::write_buffer::WriteBufferConnection;
+use iox_clap_blocks::run_config::RunConfig;
 use observability_deps::tracing::*;
 use router2::{
     dml_handlers::ShardedWriteBuffer,
@@ -20,6 +16,7 @@ use router2::{
     server::{http::HttpDelegate, RouterServer},
     sharder::TableNamespaceSharder,
 };
+use std::{collections::BTreeSet, sync::Arc};
 use thiserror::Error;
 use time::SystemProvider;
 use write_buffer::{config::WriteBufferConfigFactory, core::WriteBufferError};

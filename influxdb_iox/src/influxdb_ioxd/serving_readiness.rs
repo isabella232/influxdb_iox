@@ -1,48 +1,9 @@
+use iox_clap_blocks::run_config::ServingReadinessState;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-
 use tonic::{Request, Status};
-
-#[derive(Debug, Clone)]
-pub enum ServingReadinessState {
-    Unavailable,
-    Serving,
-}
-
-impl std::str::FromStr for ServingReadinessState {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_ascii_lowercase().as_str() {
-            "unavailable" => Ok(Self::Unavailable),
-            "serving" => Ok(Self::Serving),
-            _ => Err(format!(
-                "Invalid serving readiness format '{}'. Valid options: unavailable, serving",
-                s
-            )),
-        }
-    }
-}
-
-impl From<bool> for ServingReadinessState {
-    fn from(v: bool) -> Self {
-        match v {
-            true => Self::Serving,
-            false => Self::Unavailable,
-        }
-    }
-}
-
-impl From<ServingReadinessState> for bool {
-    fn from(state: ServingReadinessState) -> Self {
-        match state {
-            ServingReadinessState::Unavailable => false,
-            ServingReadinessState::Serving => true,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct ServingReadiness(Arc<AtomicBool>);

@@ -1,15 +1,10 @@
 //! Implementation of command line option for running ingester
 
-use std::sync::Arc;
-
-use crate::{
-    clap_blocks::run_config::RunConfig,
-    influxdb_ioxd::{
-        self,
-        server_type::{
-            common_state::{CommonServerState, CommonServerStateError},
-            ingester::IngesterServerType,
-        },
+use crate::influxdb_ioxd::{
+    self,
+    server_type::{
+        common_state::{CommonServerState, CommonServerStateError},
+        ingester::IngesterServerType,
     },
 };
 use ingester::handler::IngestHandlerImpl;
@@ -17,7 +12,9 @@ use ingester::server::grpc::GrpcDelegate;
 use ingester::server::{http::HttpDelegate, IngesterServer};
 use iox_catalog::interface::{Catalog, KafkaPartition};
 use iox_catalog::postgres::PostgresCatalog;
+use iox_clap_blocks::run_config::RunConfig;
 use observability_deps::tracing::*;
+use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

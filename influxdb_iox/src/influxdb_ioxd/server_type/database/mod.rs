@@ -107,13 +107,13 @@ impl ServerType for DatabaseServerType {
 #[cfg(test)]
 mod tests {
     use crate::{
-        clap_blocks::run_config::RunConfig,
         commands::run::database::Config,
         influxdb_ioxd::{
             grpc_listener, http_listener, serve,
             server_type::database::setup::{make_application, make_server},
         },
     };
+    use iox_clap_blocks::run_config::RunConfig;
 
     use super::*;
     use ::http::{header::HeaderName, HeaderValue};

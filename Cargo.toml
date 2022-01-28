@@ -20,6 +20,7 @@ members = [
     "ingester",
     "internal_types",
     "iox_catalog",
+    "iox_clap_blocks",
     "iox_data_generator",
     "iox_object_store",
     "job_registry",
