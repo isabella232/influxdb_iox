@@ -1,19 +1,16 @@
 //! Implementation of command line option for running server
 
-use std::sync::Arc;
-
-use crate::{
-    clap_blocks::run_config::RunConfig,
-    influxdb_ioxd::{
-        self,
-        server_type::{
-            common_state::{CommonServerState, CommonServerStateError},
-            router::RouterServerType,
-        },
+use crate::influxdb_ioxd::{
+    self,
+    server_type::{
+        common_state::{CommonServerState, CommonServerStateError},
+        router::RouterServerType,
     },
 };
+use clap_blocks::run_config::RunConfig;
 use observability_deps::tracing::warn;
 use router::{resolver::RemoteTemplate, server::RouterServer};
+use std::sync::Arc;
 use thiserror::Error;
 use time::SystemProvider;
 

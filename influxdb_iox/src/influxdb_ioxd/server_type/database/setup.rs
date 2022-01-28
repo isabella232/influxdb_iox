@@ -1,26 +1,22 @@
-use std::sync::Arc;
-
+use crate::commands::run::database::Config;
+use clap_blocks::object_store::{check_object_store, warn_about_inmem_store};
 use object_store::ObjectStore;
 use observability_deps::tracing::warn;
 use server::{ApplicationState, Server, ServerConfig};
 use snafu::{ResultExt, Snafu};
+use std::sync::Arc;
 use trace::TraceCollector;
-
-use crate::{
-    clap_blocks::object_store::{check_object_store, warn_about_inmem_store},
-    commands::run::database::Config,
-};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
     #[snafu(display("Cannot parse object store config: {}", source))]
     ObjectStoreParsing {
-        source: crate::clap_blocks::object_store::ParseError,
+        source: clap_blocks::object_store::ParseError,
     },
 
     #[snafu(display("Cannot check object store config: {}", source))]
     ObjectStoreCheck {
-        source: crate::clap_blocks::object_store::CheckError,
+        source: clap_blocks::object_store::CheckError,
     },
 }
 

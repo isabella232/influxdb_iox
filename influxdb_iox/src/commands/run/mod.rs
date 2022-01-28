@@ -1,6 +1,5 @@
+use clap_blocks::run_config::RunConfig;
 use snafu::{ResultExt, Snafu};
-
-use crate::clap_blocks::run_config::RunConfig;
 
 pub mod database;
 pub mod ingester;

@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-use crate::clap_blocks::catalog_dsn::CatalogDsnConfig;
+use clap_blocks::catalog_dsn::CatalogDsnConfig;
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, Error)]

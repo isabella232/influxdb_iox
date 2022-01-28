@@ -1,9 +1,8 @@
-use std::sync::Arc;
-
 use iox_catalog::{
     interface::{Catalog, Error},
     postgres::PostgresCatalog,
 };
+use std::sync::Arc;
 
 /// CLI config for catalog DSN.
 #[derive(Debug, Clone, clap::Parser)]

@@ -1,0 +1,24 @@
+[package]
+name = "clap_blocks"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "3", features = ["derive", "env"] }
+data_types = { path = "../data_types" }
+futures = "0.3"
+iox_catalog = { path = "../iox_catalog" }
+metric = { path = "../metric" }
+object_store = { path = "../object_store" }
+observability_deps = { path = "../observability_deps" }
+snafu = "0.7"
+time = { path = "../time" }
+trace = { path = "../trace" }
+trace_exporters = { path = "../trace_exporters" }
+trogging = { path = "../trogging", default-features = false, features = ["clap"] }
+uuid = { version = "0.8", features = ["v4"] }
+workspace-hack = { path = "../workspace-hack"}
+write_buffer = { path = "../write_buffer" }
+
+[dev-dependencies]
+tempfile = "3.1.0"

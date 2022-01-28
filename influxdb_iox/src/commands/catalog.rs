@@ -1,6 +1,6 @@
 //! This module implements the `catalog` CLI command
 
-use crate::clap_blocks::catalog_dsn::CatalogDsnConfig;
+use clap_blocks::catalog_dsn::CatalogDsnConfig;
 use thiserror::Error;
 
 mod topic;
