@@ -1,14 +1,16 @@
 //! Implementation of command line option for running ingester
 
-use crate::influxdb_ioxd::{
-    self,
-    server_type::{
+use clap_blocks::{
+    catalog_dsn::CatalogDsnConfig, run_config::RunConfig, write_buffer::WriteBufferConfig,
+};
+use influxdb_iox::{
+    commands::tracing::TroggingGuard,
+    get_runtime,
+    influxdb_ioxd::server_type::{
         common_state::{CommonServerState, CommonServerStateError},
         ingester::IngesterServerType,
     },
-};
-use clap_blocks::{
-    catalog_dsn::CatalogDsnConfig, run_config::RunConfig, write_buffer::WriteBufferConfig,
+    install_crash_handler, load_dotenv, KeyValue, ReturnCode,
 };
 use ingester::{
     handler::IngestHandlerImpl,
@@ -20,11 +22,15 @@ use object_store::ObjectStore;
 use observability_deps::tracing::*;
 use std::{collections::BTreeMap, convert::TryFrom, sync::Arc, time::Duration};
 use thiserror::Error;
+use trogging::cli::LoggingConfigBuilderExt;
 
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Run: {0}")]
-    Run(#[from] influxdb_ioxd::Error),
+    Run(#[from] influxdb_iox::influxdb_ioxd::Error),
+
+    #[error("Cannot setup server: {0}")]
+    Setup(#[from] influxdb_iox::influxdb_ioxd::server_type::database::setup::Error),
 
     #[error("Invalid config: {0}")]
     InvalidConfig(#[from] CommonServerStateError),
@@ -71,6 +77,46 @@ Configuration is loaded from the following sources (highest precedence first):
         - pre-configured default values"
 )]
 pub struct Config {
+    /// Log filter short-hand.
+    ///
+    /// Convenient way to set log severity level filter.
+    /// Overrides --log-filter / LOG_FILTER.
+    ///
+    /// -v   'info'
+    ///
+    /// -vv  'debug,hyper::proto::h1=info,h2=info'
+    ///
+    /// -vvv 'trace,hyper::proto::h1=info,h2=info'
+    #[clap(
+        short = 'v',
+        long = "--verbose",
+        multiple_occurrences = true,
+        takes_value = false,
+        parse(from_occurrences)
+    )]
+    pub log_verbose_count: u8,
+
+    /// gRPC address of IOx server to connect to
+    #[clap(
+        short,
+        long,
+        global = true,
+        env = "IOX_ADDR",
+        default_value = "http://127.0.0.1:8082"
+    )]
+    host: String,
+
+    /// Additional headers to add to CLI requests
+    ///
+    /// Values should be key value pairs separated by ':'
+    #[clap(long, global = true)]
+    header: Vec<KeyValue<http::header::HeaderName, http::HeaderValue>>,
+
+    #[clap(long)]
+    /// Set the maximum number of threads to use. Defaults to the number of
+    /// cores on the system
+    num_threads: Option<usize>,
+
     #[clap(flatten)]
     pub(crate) run_config: RunConfig,
 
@@ -132,6 +178,38 @@ pub struct Config {
         default_value = "1800"
     )]
     pub persist_partition_age_threshold_seconds: u64,
+}
+
+fn main() -> Result<(), std::io::Error> {
+    install_crash_handler(); // attempt to render a useful stacktrace to stderr
+
+    // load all environment variables from .env before doing anything
+    load_dotenv();
+
+    let config: Config = clap::Parser::parse();
+
+    let tokio_runtime = get_runtime(config.num_threads)?;
+    tokio_runtime.block_on(async move {
+        let log_verbose_count = config.log_verbose_count;
+
+        fn handle_init_logs(r: Result<TroggingGuard, trogging::Error>) -> TroggingGuard {
+            match r {
+                Ok(guard) => guard,
+                Err(e) => {
+                    eprintln!("Initializing logs failed: {}", e);
+                    std::process::exit(ReturnCode::Failure as _);
+                }
+            }
+        }
+
+        let _tracing_guard = handle_init_logs(init_logs_and_tracing(log_verbose_count, &config));
+        if let Err(e) = command(config).await {
+            eprintln!("Server command failed: {}", e);
+            std::process::exit(ReturnCode::Failure as _)
+        }
+    });
+
+    Ok(())
 }
 
 pub async fn command(config: Config) -> Result<()> {
@@ -201,5 +279,22 @@ pub async fn command(config: Config) -> Result<()> {
 
     info!("starting ingester");
 
-    Ok(influxdb_ioxd::main(common_state, server_type).await?)
+    Ok(influxdb_iox::influxdb_ioxd::main(common_state, server_type).await?)
+}
+
+/// Start log or trace emitter. Panics on error.
+pub fn init_logs_and_tracing(
+    log_verbose_count: u8,
+    config: &Config,
+) -> Result<TroggingGuard, trogging::Error> {
+    let mut logging_config = config.run_config.logging_config.clone();
+
+    // Handle the case if -v/-vv is specified both before and after the server
+    // command
+    logging_config.log_verbose_count =
+        std::cmp::max(logging_config.log_verbose_count, log_verbose_count);
+
+    trogging::Builder::new()
+        .with_logging_config(&logging_config)
+        .install_global()
 }

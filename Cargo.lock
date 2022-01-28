@@ -2079,6 +2079,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ingester_cli"
+version = "0.1.0"
+dependencies = [
+ "clap 3.0.13",
+ "clap_blocks",
+ "http",
+ "influxdb_iox",
+ "influxdb_iox_client",
+ "ingester",
+ "iox_catalog",
+ "metric",
+ "object_store",
+ "observability_deps",
+ "thiserror",
+ "trogging",
+ "workspace-hack",
+ "write_buffer",
+]
+
+[[package]]
 name = "instant"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"

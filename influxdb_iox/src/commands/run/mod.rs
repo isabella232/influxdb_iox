@@ -2,7 +2,6 @@ use clap_blocks::run_config::RunConfig;
 use snafu::{ResultExt, Snafu};
 
 pub mod database;
-pub mod ingester;
 pub mod router;
 pub mod router2;
 pub mod test;
@@ -18,9 +17,6 @@ pub enum Error {
 
     #[snafu(display("Error in router2 subcommand: {}", source))]
     Router2Error { source: router2::Error },
-
-    #[snafu(display("Error in ingester subcommand: {}", source))]
-    IngesterError { source: ingester::Error },
 
     #[snafu(display("Error in test subcommand: {}", source))]
     TestError { source: test::Error },
@@ -46,7 +42,6 @@ impl Config {
             Some(Command::Database(config)) => &config.run_config,
             Some(Command::Router(config)) => &config.run_config,
             Some(Command::Router2(config)) => &config.run_config,
-            Some(Command::Ingester(config)) => &config.run_config,
             Some(Command::Test(config)) => &config.run_config,
         }
     }
@@ -62,9 +57,6 @@ enum Command {
 
     /// Run the server in router2 mode
     Router2(router2::Config),
-
-    /// Run the server in ingester mode
-    Ingester(ingester::Config),
 
     /// Run the server in test mode
     Test(test::Config),
@@ -83,7 +75,6 @@ pub async fn command(config: Config) -> Result<()> {
         Some(Command::Database(config)) => database::command(config).await.context(DatabaseSnafu),
         Some(Command::Router(config)) => router::command(config).await.context(RouterSnafu),
         Some(Command::Router2(config)) => router2::command(config).await.context(Router2Snafu),
-        Some(Command::Ingester(config)) => ingester::command(config).await.context(IngesterSnafu),
         Some(Command::Test(config)) => test::command(config).await.context(TestSnafu),
     }
 }

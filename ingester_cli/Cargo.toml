@@ -1,0 +1,20 @@
+[package]
+name = "ingester_cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "3", features = ["derive", "env"] }
+clap_blocks = { path = "../clap_blocks" }
+http = "0.2.0"
+influxdb_iox = { path = "../influxdb_iox" }
+influxdb_iox_client = { path = "../influxdb_iox_client", features = ["flight", "format", "write_lp"] }
+ingester = { path = "../ingester" }
+iox_catalog = { path = "../iox_catalog" }
+metric = { path = "../metric" }
+object_store = { path = "../object_store" }
+observability_deps = { path = "../observability_deps" }
+thiserror = "1.0.30"
+trogging = { path = "../trogging", default-features = false, features = ["clap"] }
+workspace-hack = { path = "../workspace-hack"}
+write_buffer = { path = "../write_buffer" }
