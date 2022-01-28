@@ -251,7 +251,7 @@ impl InfluxRpcPredicateBuilder {
 /// 1. Flatten `None` value nodes with `children` of length 1 (semantically the
 /// same as the child itself). Specifically, if the input is:
 ///
-/// ```
+/// ```text
 /// Node {
 ///  value: None,
 ///  children: [child],
@@ -260,7 +260,7 @@ impl InfluxRpcPredicateBuilder {
 ///
 /// Then the output is:
 ///
-/// ```
+/// ```text
 /// child
 /// ```
 fn normalize_node(node: RPCNode) -> Result<RPCNode> {
@@ -750,8 +750,11 @@ impl<'a> Loggable<'a> for RPCPredicate {
 /// Display
 ///
 /// For example:
+///
+/// ```text
 /// let pred = RPCPredicate (...);
 /// println!("The predicate is {:?}", loggable_predicate(pred));
+/// ```
 pub fn displayable_predicate(pred: Option<&RPCPredicate>) -> impl fmt::Display + '_ {
     struct Wrapper<'a>(Option<&'a RPCPredicate>);
 

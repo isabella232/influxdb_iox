@@ -55,7 +55,7 @@ pub fn tag_keys_to_byte_vecs(tag_keys: Arc<BTreeSet<String>>) -> Vec<Vec<u8>> {
 
 /// Convert Series and Groups ` into a form suitable for gRPC transport:
 ///
-/// ```
+/// ```text
 /// (GroupFrame) potentially
 ///
 /// (SeriesFrame for field1)
