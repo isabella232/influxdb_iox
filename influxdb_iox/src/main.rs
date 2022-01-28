@@ -31,8 +31,6 @@ mod commands {
     pub mod tracing;
 }
 
-mod clap_blocks;
-
 pub mod influxdb_ioxd;
 
 enum ReturnCode {

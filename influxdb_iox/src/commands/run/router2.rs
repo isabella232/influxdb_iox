@@ -1,18 +1,14 @@
 //! Implementation of command line option for running router2
 
-use std::{collections::BTreeSet, iter, sync::Arc};
-
-use crate::{
-    clap_blocks::{
-        catalog_dsn::CatalogDsnConfig, run_config::RunConfig, write_buffer::WriteBufferConfig,
+use crate::influxdb_ioxd::{
+    self,
+    server_type::{
+        common_state::{CommonServerState, CommonServerStateError},
+        router2::RouterServerType,
     },
-    influxdb_ioxd::{
-        self,
-        server_type::{
-            common_state::{CommonServerState, CommonServerStateError},
-            router2::RouterServerType,
-        },
-    },
+};
+use clap_blocks::{
+    catalog_dsn::CatalogDsnConfig, run_config::RunConfig, write_buffer::WriteBufferConfig,
 };
 use observability_deps::tracing::*;
 use router2::{
@@ -22,6 +18,7 @@ use router2::{
     server::{http::HttpDelegate, RouterServer},
     sharder::JumpHash,
 };
+use std::{collections::BTreeSet, iter, sync::Arc};
 use thiserror::Error;
 use trace::TraceCollector;
 use write_buffer::core::WriteBufferError;
@@ -41,7 +38,7 @@ pub enum Error {
     WriteBuffer(#[from] WriteBufferError),
 
     #[error("Catalog DSN error: {0}")]
-    CatalogDsn(#[from] crate::clap_blocks::catalog_dsn::Error),
+    CatalogDsn(#[from] clap_blocks::catalog_dsn::Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

@@ -2,6 +2,7 @@
 # In alphabetical order
 members = [
     "arrow_util",
+    "clap_blocks",
     "client_util",
     "data_types",
     "datafusion",

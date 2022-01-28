@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
+use crate::influxdb_ioxd::serving_readiness::ServingReadiness;
+use clap_blocks::run_config::RunConfig;
 use snafu::{ResultExt, Snafu};
+use std::sync::Arc;
 use trace::TraceCollector;
-
-use crate::{
-    clap_blocks::run_config::RunConfig, influxdb_ioxd::serving_readiness::ServingReadiness,
-};
 
 #[derive(Debug, Snafu)]
 pub enum CommonServerStateError {

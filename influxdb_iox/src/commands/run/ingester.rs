@@ -1,16 +1,14 @@
 //! Implementation of command line option for running ingester
 
-use crate::{
-    clap_blocks::{
-        catalog_dsn::CatalogDsnConfig, run_config::RunConfig, write_buffer::WriteBufferConfig,
+use crate::influxdb_ioxd::{
+    self,
+    server_type::{
+        common_state::{CommonServerState, CommonServerStateError},
+        ingester::IngesterServerType,
     },
-    influxdb_ioxd::{
-        self,
-        server_type::{
-            common_state::{CommonServerState, CommonServerStateError},
-            ingester::IngesterServerType,
-        },
-    },
+};
+use clap_blocks::{
+    catalog_dsn::CatalogDsnConfig, run_config::RunConfig, write_buffer::WriteBufferConfig,
 };
 use ingester::{
     handler::IngestHandlerImpl,
@@ -38,7 +36,7 @@ pub enum Error {
     KafkaTopicNotFound(String),
 
     #[error("Cannot parse object store config: {0}")]
-    ObjectStoreParsing(#[from] crate::clap_blocks::object_store::ParseError),
+    ObjectStoreParsing(#[from] clap_blocks::object_store::ParseError),
 
     #[error("kafka_partition_range_start must be <= kafka_partition_range_end")]
     KafkaRange,
@@ -53,7 +51,7 @@ pub enum Error {
     NumSequencers(#[from] std::num::TryFromIntError),
 
     #[error("Catalog DSN error: {0}")]
-    CatalogDsn(#[from] crate::clap_blocks::catalog_dsn::Error),
+    CatalogDsn(#[from] clap_blocks::catalog_dsn::Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

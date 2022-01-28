@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-use crate::clap_blocks::catalog_dsn::CatalogDsnConfig;
+use clap_blocks::catalog_dsn::CatalogDsnConfig;
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, Error)]
@@ -17,7 +17,7 @@ pub enum Error {
     ClientError(#[from] influxdb_iox_client::error::Error),
 
     #[error("Catalog DSN error: {0}")]
-    CatalogDsn(#[from] crate::clap_blocks::catalog_dsn::Error),
+    CatalogDsn(#[from] clap_blocks::catalog_dsn::Error),
 }
 
 /// Manage IOx chunks

@@ -1,6 +1,6 @@
 //! This module implements the `catalog` CLI command
 
-use crate::clap_blocks::catalog_dsn::CatalogDsnConfig;
+use clap_blocks::catalog_dsn::CatalogDsnConfig;
 use thiserror::Error;
 
 mod topic;
@@ -21,7 +21,7 @@ pub enum Error {
     Catalog(#[from] iox_catalog::interface::Error),
 
     #[error("Catalog DSN error: {0}")]
-    CatalogDsn(#[from] crate::clap_blocks::catalog_dsn::Error),
+    CatalogDsn(#[from] clap_blocks::catalog_dsn::Error),
 }
 
 /// Various commands for catalog manipulation

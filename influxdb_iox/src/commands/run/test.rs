@@ -1,18 +1,15 @@
 //! Implementation of command line option for running server
 
-use std::sync::Arc;
-
-use crate::{
-    clap_blocks::run_config::RunConfig,
-    influxdb_ioxd::{
-        self,
-        server_type::{
-            common_state::{CommonServerState, CommonServerStateError},
-            test::{TestAction, TestServerType},
-        },
+use crate::influxdb_ioxd::{
+    self,
+    server_type::{
+        common_state::{CommonServerState, CommonServerStateError},
+        test::{TestAction, TestServerType},
     },
 };
+use clap_blocks::run_config::RunConfig;
 use metric::Registry;
+use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

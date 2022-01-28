@@ -25,7 +25,7 @@ pub struct WriteBufferConfig {
         env = "INFLUXDB_IOX_WRITE_BUFFER_TOPIC",
         default_value = "iox_shared"
     )]
-    pub(crate) topic: String,
+    pub topic: String,
 
     /// Write buffer connection config.
     ///
