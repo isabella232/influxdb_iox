@@ -14,7 +14,7 @@ struct DeploymentService {
 }
 
 use super::error::default_server_error_handler;
-use crate::influxdb_ioxd::serving_readiness::ServingReadiness;
+use crate::serving_readiness::ServingReadiness;
 
 #[tonic::async_trait]
 impl deployment_service_server::DeploymentService for DeploymentService {

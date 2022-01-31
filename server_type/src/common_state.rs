@@ -1,4 +1,4 @@
-use crate::influxdb_ioxd::serving_readiness::ServingReadiness;
+use crate::serving_readiness::ServingReadiness;
 use iox_clap_blocks::run_config::RunConfig;
 use snafu::{ResultExt, Snafu};
 use std::sync::Arc;

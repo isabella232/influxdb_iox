@@ -7,12 +7,7 @@ use snafu::{ResultExt, Snafu};
 use std::{net::SocketAddr, sync::Arc};
 use trace_http::ctx::TraceHeaderParser;
 
-mod http;
 mod jemalloc;
-mod planner;
-pub(crate) mod rpc;
-pub(crate) mod server_type;
-pub(crate) mod serving_readiness;
 
 #[derive(Debug, Snafu)]
 pub enum Error {

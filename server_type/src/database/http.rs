@@ -24,7 +24,7 @@ use observability_deps::tracing::{debug, error};
 use serde::Deserialize;
 use snafu::{OptionExt, ResultExt, Snafu};
 
-use crate::influxdb_ioxd::{
+use crate::{
     http::{
         dml::{HttpDrivenDml, InnerDmlError, RequestOrResponse},
         error::{HttpApiError, HttpApiErrorExt, HttpApiErrorSource},

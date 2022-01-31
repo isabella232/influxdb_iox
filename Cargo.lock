@@ -1814,6 +1814,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "server",
+ "server_type",
  "snafu",
  "tempfile",
  "test_helpers",
@@ -4299,6 +4300,40 @@ dependencies = [
  "rand",
  "test_helpers",
  "tokio",
+]
+
+[[package]]
+name = "server_type"
+version = "0.1.0"
+dependencies = [
+ "arrow",
+ "async-trait",
+ "bytes",
+ "data_types",
+ "datafusion 0.1.0",
+ "db",
+ "dml",
+ "futures",
+ "generated_types",
+ "http",
+ "hyper",
+ "influxdb_iox_client",
+ "iox_clap_blocks",
+ "job_registry",
+ "metric",
+ "observability_deps",
+ "predicate",
+ "prost",
+ "query",
+ "serde",
+ "server",
+ "snafu",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tonic",
+ "trace",
+ "uuid",
 ]
 
 [[package]]

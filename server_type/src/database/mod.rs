@@ -1,7 +1,7 @@
-use crate::influxdb_ioxd::{
+use crate::{
     http::metrics::LineProtocolMetrics,
     rpc::RpcBuilderInput,
-    server_type::{RpcError, ServerType},
+    RpcError, ServerType,
     serving_readiness::ServingReadiness,
 };
 use async_trait::async_trait;

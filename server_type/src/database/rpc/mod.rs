@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use crate::influxdb_ioxd::{
+use crate::{
     rpc::{add_gated_service, add_service, serve_builder, setup_builder, RpcBuilderInput},
-    server_type::{database::DatabaseServerType, RpcError},
+    database::DatabaseServerType, RpcError,
 };
 
 mod delete;

@@ -49,6 +49,7 @@ members = [
     "schema",
     "server",
     "server_benchmarks",
+    "server_type",
     "test_helpers",
     "time",
     "trace",

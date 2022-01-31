@@ -34,9 +34,9 @@ use query::{
 };
 use server::DatabaseStore;
 
-use crate::influxdb_ioxd::{
+use crate::{
     planner::Planner,
-    server_type::database::rpc::storage::{
+    database::rpc::storage::{
         data::{
             fieldlist_to_measurement_fields_response, series_or_groups_to_read_response,
             tag_keys_to_byte_vecs,

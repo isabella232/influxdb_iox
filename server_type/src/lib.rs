@@ -1,18 +1,20 @@
 use std::sync::Arc;
-
 use async_trait::async_trait;
 use hyper::{Body, Request, Response};
 use metric::Registry;
 use snafu::Snafu;
 use trace::TraceCollector;
-
-use crate::influxdb_ioxd::{http::error::HttpApiErrorSource, rpc::RpcBuilderInput};
+use crate::{http::error::HttpApiErrorSource, rpc::RpcBuilderInput};
 
 pub mod common_state;
 pub mod database;
+mod http;
 pub mod ingester;
+mod planner;
 pub mod router;
 pub mod router2;
+mod rpc;
+mod serving_readiness;
 pub mod test;
 
 #[derive(Debug, Snafu)]
