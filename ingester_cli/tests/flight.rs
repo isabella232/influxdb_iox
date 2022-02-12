@@ -1,11 +1,13 @@
-use crate::common::server_fixture::{ServerFixture, ServerType, TestConfig};
+mod common;
+
+use crate::common::server_fixture::{ServerFixture, TestConfig};
 use tempfile::TempDir;
 
 #[tokio::test]
 async fn querying_without_data_returns_nothing() {
     let write_buffer_dir = TempDir::new().unwrap();
 
-    let test_config = TestConfig::new(ServerType::Ingester)
+    let test_config = TestConfig::new()
         .with_env("INFLUXDB_IOX_CATALOG_TYPE", "memory")
         .with_env("INFLUXDB_IOX_WRITE_BUFFER_TYPE", "file")
         .with_env("INFLUXDB_IOX_PAUSE_INGEST_SIZE_BYTES", "20")

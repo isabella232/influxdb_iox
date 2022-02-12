@@ -2082,8 +2082,10 @@ dependencies = [
 name = "ingester_cli"
 version = "0.1.0"
 dependencies = [
+ "assert_cmd",
  "clap 3.0.13",
  "clap_blocks",
+ "futures",
  "http",
  "influxdb_iox",
  "influxdb_iox_client",
@@ -2092,7 +2094,14 @@ dependencies = [
  "metric",
  "object_store",
  "observability_deps",
+ "once_cell",
+ "parking_lot 0.12.0",
+ "querier",
+ "reqwest",
+ "tempfile",
+ "test_helpers",
  "thiserror",
+ "tokio",
  "trogging",
  "workspace-hack",
  "write_buffer",
