@@ -84,6 +84,7 @@ fn generate_grpc_types(root: &Path) -> Result<()> {
         .compile_well_known_types()
         .disable_comments(&[".google"])
         .extern_path(".google.protobuf", "::pbjson_types")
+        .extern_path(".datafusion", "::datafusion::protobuf")
         .bytes(&[
             ".influxdata.iox.management.v1.Chunk.id",
             ".influxdata.iox.management.v1.ClosePartitionChunkRequest.chunk_id",
@@ -118,6 +119,7 @@ fn generate_grpc_types(root: &Path) -> Result<()> {
 
     pbjson_build::Builder::new()
         .register_descriptors(&descriptor_set)?
+        .extern_path(".datafusion", "::datafusion::protobuf")
         .build(&[
             ".influxdata.iox",
             ".influxdata.pbdata",
