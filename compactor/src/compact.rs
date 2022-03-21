@@ -1399,6 +1399,36 @@ mod tests {
         assert_eq!(actual_pf2_tombstones, &[t3.id, t4.id]);
     }
 
+    #[test]
+    fn test_overlap_group_edge_case() {
+        let one = arbitrary_parquet_file(0, 3);
+        let two = arbitrary_parquet_file(5, 10);
+        let three = arbitrary_parquet_file(2, 6);
+
+        // Given a bunch of files in a particular order to exercise the algorithm:
+        let all = vec![one, two, three];
+
+        let groups = Compactor::overlapped_groups(all);
+        dbg!(&groups);
+
+        // All should be in the same group.
+        assert_eq!(groups.len(), 1);
+
+        let one = arbitrary_parquet_file(0, 3);
+        let two = arbitrary_parquet_file(5, 10);
+        let three = arbitrary_parquet_file(2, 6);
+        let four = arbitrary_parquet_file(8, 11);
+
+        // Given a bunch of files in a particular order to exercise the algorithm:
+        let all = vec![one, two, three, four];
+
+        let groups = Compactor::overlapped_groups(all);
+        dbg!(&groups);
+
+        // All should be in the same group.
+        assert_eq!(groups.len(), 1);
+    }
+
     async fn list_all(object_store: &DynObjectStore) -> Result<Vec<Path>, object_store::Error> {
         object_store
             .list(None)
