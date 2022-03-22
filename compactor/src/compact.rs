@@ -141,6 +141,16 @@ pub enum Error {
     Update {
         source: iox_catalog::interface::Error,
     },
+
+    #[snafu(display("Error removing processed tombstones {}", source))]
+    RemoveProcessedTombstones {
+        source: iox_catalog::interface::Error,
+    },
+
+    #[snafu(display("Error removing tombstones {}", source))]
+    RemoveTombstones {
+        source: iox_catalog::interface::Error,
+    },
 }
 
 /// A specialized `Error` for Compactor Data errors
@@ -349,7 +359,7 @@ impl Compactor {
         }
 
         // Remove fully processed tombstones
-        // TODO: #3953 - remove_fully_processed_tombstones(tombstones)
+        self.remove_fully_processed_tombstones(tombstones).await?;
 
         // Upgrade old level-0 to level 1
         self.update_to_level_1(&upgrade_level_list).await?;
@@ -644,6 +654,44 @@ impl Compactor {
         Ok(())
     }
 
+    async fn remove_tombstones(
+        &self,
+        tombstone_ids: &[TombstoneId],
+        txn: &mut dyn Transaction,
+    ) -> Result<()> {
+        if tombstone_ids.is_empty() {
+            return Ok(());
+        }
+
+        // Must remove the processed tombstones first
+        let deleted_pt_row_num = txn
+            .processed_tombstones()
+            .remove(tombstone_ids)
+            .await
+            .context(RemoveProcessedTombstonesSnafu)?;
+        if deleted_pt_row_num == 0 {
+            warn!(
+                "The processed tombstones of the following tombstones are not deleted: {:?}",
+                tombstone_ids
+            );
+        }
+
+        // Then remove the tombstones
+        let deleted_ts_row_num = txn
+            .tombstones()
+            .remove(tombstone_ids)
+            .await
+            .context(RemoveTombstonesSnafu)?;
+        if deleted_ts_row_num == 0 {
+            warn!(
+                "The foloowing tombstones are not deleted: {:?}",
+                tombstone_ids
+            );
+        }
+
+        Ok(())
+    }
+
     /// Given a list of parquet files that come from the same Table Partition, group files together
     /// if their (min_time, max_time) ranges overlap. Does not preserve or guarantee any ordering.
     fn overlapped_groups(mut parquet_files: Vec<ParquetFile>) -> Vec<Vec<ParquetFile>> {
@@ -682,6 +730,94 @@ impl Compactor {
     // Compute time to split data
     fn compute_split_time(min_time: i64, max_time: i64) -> i64 {
         min_time + (max_time - min_time) * SPLIT_PERCENTAGE / 100
+    }
+
+    // remove fully processed tombstones
+    async fn remove_fully_processed_tombstones(
+        &self,
+        tombstone_ids: HashSet<TombstoneId>,
+    ) -> Result<()> {
+        // get fully proccessed ones
+        let mut to_be_removed = Vec::with_capacity(tombstone_ids.len());
+        for id in tombstone_ids {
+            if self.fully_processed(id).await {
+                to_be_removed.push(id);
+            }
+        }
+
+        // remove the tombstones
+        let mut txn = self
+            .catalog
+            .start_transaction()
+            .await
+            .context(TransactionSnafu)?;
+
+        self.remove_tombstones(&to_be_removed, txn.deref_mut())
+            .await?;
+
+        txn.commit().await.context(TransactionCommitSnafu)?;
+
+        Ok(())
+    }
+
+    // Return true if the given tombstones is fully processed
+    async fn fully_processed(&self, tombstone_id: TombstoneId) -> bool {
+        let mut repos = self.catalog.repositories().await;
+
+        // Get tablbeId, sequencerId, min_time, max-time of the tombstone
+        let tombstone = repos.tombstones().get_by_id(tombstone_id).await;
+        let tombstone = match tombstone {
+            Ok(Some(tombstone)) => tombstone,
+            _ => {
+                warn!(
+                    "Tombstone ID {} not found. Won't be able to verify whether the tombstone is fully processed",
+                    tombstone_id
+                );
+                return false;
+            }
+        };
+
+        // Get number of non-deleted parquet files of the same tableId & sequencerId that overlap with the tombsotne time range
+        let count_pf = repos
+            .parquet_files()
+            .count_by_table_and_sequencer(
+                tombstone.table_id,
+                tombstone.sequencer_id,
+                tombstone.min_time,
+                tombstone.max_time,
+            )
+            .await;
+        let count_pf = match count_pf {
+            Ok(count_pf) => count_pf,
+            _ => {
+                warn!(
+                    "Error getting parquet file count for table ID {}, sequencer ID {}, min time {:?}, max time {:?}. 
+                    Won't be able to verify whether its tombstone is fully processed",
+                    tombstone.table_id, tombstone.sequencer_id, tombstone.min_time, tombstone.max_time
+                );
+                return false;
+            }
+        };
+
+        // Get number of the processed parquet file for this tombstones
+        let count_pt = repos
+            .processed_tombstones()
+            .count_by_tombstone_id(tombstone.id)
+            .await;
+        let count_pt = match count_pt {
+            Ok(count_pt) => count_pt,
+            _ => {
+                warn!(
+                    "Error getting processed tombstone count for tombstone ID {}. 
+                    Won't be able to verify whether the tombstone is fully processed",
+                    tombstone.id
+                );
+                return false;
+            }
+        };
+
+        // Fully processed if two count the same
+        count_pf == count_pt
     }
 }
 

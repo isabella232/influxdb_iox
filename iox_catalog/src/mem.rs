@@ -821,6 +821,12 @@ impl TombstoneRepo for MemTxn {
         Ok(tombstones)
     }
 
+    async fn get_by_id(&mut self, id: TombstoneId) -> Result<Option<Tombstone>> {
+        let stage = self.stage();
+
+        Ok(stage.tombstones.iter().find(|t| t.id == id).cloned())
+    }
+
     async fn list_tombstones_by_sequencer_greater_than(
         &mut self,
         sequencer_id: SequencerId,
@@ -835,6 +841,18 @@ impl TombstoneRepo for MemTxn {
             .cloned()
             .collect();
         Ok(tombstones)
+    }
+
+    async fn remove(&mut self, tombstone_ids: &[TombstoneId]) -> Result<usize> {
+        let stage = self.stage();
+
+        let len = stage.processed_tombstones.len();
+
+        stage
+            .tombstones
+            .retain(|ts| tombstone_ids.iter().find(|id| **id == ts.id).is_none());
+
+        Ok(len - stage.processed_tombstones.len())
     }
 }
 
@@ -1017,6 +1035,34 @@ impl ParquetFileRepo for MemTxn {
         }
         Ok(count_i64.unwrap())
     }
+
+    async fn count_by_table_and_sequencer(
+        &mut self,
+        table_id: TableId,
+        sequencer_id: SequencerId,
+        min_time: Timestamp,
+        max_time: Timestamp,
+    ) -> Result<i64> {
+        let stage = self.stage();
+
+        let count = stage
+            .parquet_files
+            .iter()
+            .filter(|f| {
+                f.sequencer_id == sequencer_id
+                    && f.table_id == table_id
+                    && !f.to_delete
+                    && ((f.min_time <= min_time && f.max_time >= min_time)
+                        || (f.min_time > min_time && f.min_time <= max_time))
+            })
+            .count();
+
+        let count_i64 = i64::try_from(count);
+        if count_i64.is_err() {
+            return Err(Error::InvalidValue { value: count });
+        }
+        Ok(count_i64.unwrap())
+    }
 }
 
 #[async_trait]
@@ -1085,6 +1131,37 @@ impl ProcessedTombstoneRepo for MemTxn {
             return Err(Error::InvalidValue { value: count });
         }
         Ok(count_i64.unwrap())
+    }
+
+    async fn count_by_tombstone_id(&mut self, tombstone_id: TombstoneId) -> Result<i64> {
+        let stage = self.stage();
+
+        let count = stage
+            .processed_tombstones
+            .iter()
+            .filter(|p| p.tombstone_id == tombstone_id)
+            .count();
+
+        let count_i64 = i64::try_from(count);
+        if count_i64.is_err() {
+            return Err(Error::InvalidValue { value: count });
+        }
+        Ok(count_i64.unwrap())
+    }
+
+    async fn remove(&mut self, tombstone_ids: &[TombstoneId]) -> Result<usize> {
+        let stage = self.stage();
+
+        let len = stage.processed_tombstones.len();
+
+        stage.processed_tombstones.retain(|pt| {
+            tombstone_ids
+                .iter()
+                .find(|id| **id == pt.tombstone_id)
+                .is_none()
+        });
+
+        Ok(len - stage.processed_tombstones.len())
     }
 }
 

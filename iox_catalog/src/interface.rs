@@ -430,6 +430,9 @@ pub trait TombstoneRepo: Send + Sync {
     /// list all tombstones for a given table
     async fn list_by_table(&mut self, table_id: TableId) -> Result<Vec<Tombstone>>;
 
+    /// get tombstones of the given id
+    async fn get_by_id(&mut self, tombstone_id: TombstoneId) -> Result<Option<Tombstone>>;
+
     /// return all tombstones for the sequencer with a sequence number greater than that
     /// passed in. This will be used by the ingester on startup to see what tombstones
     /// might have to be applied to data that is read from the write buffer.
@@ -438,6 +441,10 @@ pub trait TombstoneRepo: Send + Sync {
         sequencer_id: SequencerId,
         sequence_number: SequenceNumber,
     ) -> Result<Vec<Tombstone>>;
+
+    /// Removed given tombstones
+    /// Return number of deleted rows
+    async fn remove(&mut self, tombstone_ids: &[TombstoneId]) -> Result<usize>;
 }
 
 /// The starting compaction level for parquet files is zero.
@@ -497,6 +504,15 @@ pub trait ParquetFileRepo: Send + Sync {
 
     /// Return count
     async fn count(&mut self) -> Result<i64>;
+
+    /// return count of files of given tableId and sequenceId
+    async fn count_by_table_and_sequencer(
+        &mut self,
+        table_id: TableId,
+        sequencer_id: SequencerId,
+        min_time: Timestamp,
+        max_time: Timestamp,
+    ) -> Result<i64>;
 }
 
 /// Functions for working with processed tombstone pointers in the catalog
@@ -518,6 +534,13 @@ pub trait ProcessedTombstoneRepo: Send + Sync {
 
     /// Return count
     async fn count(&mut self) -> Result<i64>;
+
+    /// Return count for a given tombstone id
+    async fn count_by_tombstone_id(&mut self, tombstone_id: TombstoneId) -> Result<i64>;
+
+    /// Removed processed tombstones of given tombstone ids
+    /// Return number of deleted rows
+    async fn remove(&mut self, tombstone_ids: &[TombstoneId]) -> Result<usize>;
 }
 
 /// Gets the namespace schema including all tables and columns.
