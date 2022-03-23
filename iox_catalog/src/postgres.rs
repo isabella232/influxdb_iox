@@ -1304,11 +1304,11 @@ ORDER BY id;
         let deleted = sqlx::query(
             r#"
 DELETE FROM tombstone
-WHERE id IN $1
+WHERE id IN (1, 2)
 RETURNING id;
         "#,
         )
-        .bind(&ids[..])
+        .bind(&ids[..]) // $1
         .fetch_all(&mut self.inner)
         .await
         .map_err(|e| Error::SqlxError { source: e })?;
@@ -1643,7 +1643,7 @@ WHERE tombstone_id IN $1
 RETURNING tombstone_id;
         "#,
         )
-        .bind(&ids[..])
+        .bind(&ids[..]) // $1
         .fetch_all(&mut self.inner)
         .await
         .map_err(|e| Error::SqlxError { source: e })?;
