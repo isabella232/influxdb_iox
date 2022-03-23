@@ -1304,7 +1304,7 @@ ORDER BY id;
         let deleted = sqlx::query(
             r#"
 DELETE FROM tombstone
-WHERE id IN ($1)
+WHERE id IN $1
 RETURNING id;
         "#,
         )
@@ -1639,7 +1639,7 @@ WHERE parquet_file_id = $1
         let deleted = sqlx::query(
             r#"
 DELETE FROM processed_tombstone
-WHERE tombstone_id IN ($1)
+WHERE tombstone_id IN $1
 RETURNING tombstone_id;
         "#,
         )
