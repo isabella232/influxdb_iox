@@ -654,44 +654,6 @@ impl Compactor {
         Ok(())
     }
 
-    async fn remove_tombstones(
-        &self,
-        tombstone_ids: &[TombstoneId],
-        txn: &mut dyn Transaction,
-    ) -> Result<()> {
-        if tombstone_ids.is_empty() {
-            return Ok(());
-        }
-
-        // Must remove the processed tombstones first
-        let deleted_pt_row_num = txn
-            .processed_tombstones()
-            .remove(tombstone_ids)
-            .await
-            .context(RemoveProcessedTombstonesSnafu)?;
-        if deleted_pt_row_num == 0 {
-            warn!(
-                "The processed tombstones of the following tombstones are not deleted: {:?}",
-                tombstone_ids
-            );
-        }
-
-        // Then remove the tombstones
-        let deleted_ts_row_num = txn
-            .tombstones()
-            .remove(tombstone_ids)
-            .await
-            .context(RemoveTombstonesSnafu)?;
-        if deleted_ts_row_num == 0 {
-            warn!(
-                "The foloowing tombstones are not deleted: {:?}",
-                tombstone_ids
-            );
-        }
-
-        Ok(())
-    }
-
     /// Given a list of parquet files that come from the same Table Partition, group files together
     /// if their (min_time, max_time) ranges overlap. Does not preserve or guarantee any ordering.
     fn overlapped_groups(mut parquet_files: Vec<ParquetFile>) -> Vec<Vec<ParquetFile>> {
@@ -818,6 +780,45 @@ impl Compactor {
 
         // Fully processed if two count the same
         count_pf == count_pt
+    }
+
+    // Remove processed tombstones and tombstones of given tombstones ids
+    async fn remove_tombstones(
+        &self,
+        tombstone_ids: &[TombstoneId],
+        txn: &mut dyn Transaction,
+    ) -> Result<()> {
+        if tombstone_ids.is_empty() {
+            return Ok(());
+        }
+
+        // Must remove the processed tombstones first
+        let deleted_pt_row_num = txn
+            .processed_tombstones()
+            .remove(tombstone_ids)
+            .await
+            .context(RemoveProcessedTombstonesSnafu)?;
+        if deleted_pt_row_num == 0 {
+            warn!(
+                "The processed tombstones of the following tombstones are not deleted: {:?}",
+                tombstone_ids
+            );
+        }
+
+        // Then remove the tombstones
+        let deleted_ts_row_num = txn
+            .tombstones()
+            .remove(tombstone_ids)
+            .await
+            .context(RemoveTombstonesSnafu)?;
+        if deleted_ts_row_num == 0 {
+            warn!(
+                "The foloowing tombstones are not deleted: {:?}",
+                tombstone_ids
+            );
+        }
+
+        Ok(())
     }
 }
 
