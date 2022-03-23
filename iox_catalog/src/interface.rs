@@ -604,7 +604,7 @@ pub(crate) mod test_helpers {
     use ::test_helpers::{assert_contains, tracing::TracingCapture};
     use data_types2::ColumnId;
     use metric::{Attributes, Metric, U64Histogram};
-    use std::{sync::Arc, time::Duration};
+    use std::{ops::Add, sync::Arc, time::Duration};
 
     pub(crate) async fn test_catalog(catalog: Arc<dyn Catalog>) {
         test_setup(Arc::clone(&catalog)).await;
@@ -1320,8 +1320,8 @@ pub(crate) mod test_helpers {
                 other_table.id,
                 sequencer.id,
                 SequenceNumber::new(2),
-                min_time,
-                max_time,
+                min_time.add(10),
+                max_time.add(10),
                 "bleh",
             )
             .await
@@ -1433,7 +1433,6 @@ pub(crate) mod test_helpers {
         assert_eq!(ts, t5.clone()); // still there
 
         // test count_by_overlaps
-
     }
 
     async fn test_parquet_file(catalog: Arc<dyn Catalog>) {

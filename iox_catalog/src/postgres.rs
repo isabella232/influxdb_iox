@@ -1300,37 +1300,36 @@ ORDER BY id;
     }
 
     async fn remove(&mut self, tombstone_ids: &[TombstoneId]) -> Result<usize> {
-
         let ids: Vec<_> = tombstone_ids.iter().map(|t| t.get()).collect();
 
-        let sql = format!("DELETE FROM tombstone WHERE id in({}) RETURNING id;", 
-           (0..ids.len())
-            .map(|_| "?")
-            .collect::<Vec<&str>>()
-            .join(",")
+        let sql = format!(
+            "DELETE FROM tombstone WHERE id in({}) RETURNING id;",
+            ids.iter()
+                .map(|id| id.to_string())
+                .collect::<Vec<_>>()
+                .join(",") // (0..ids.len()).map(|_| "?").collect::<Vec<&str>>().join(",")
         );
-        let mut query = sqlx::query(&sql);
-        for i in 0..ids.len() {
-            query = query.bind(ids[i]);
-        }
+        // let mut query = sqlx::query(&sql);
+        // for i in 0..ids.len() {
+        //     query = query.bind(ids[i]);
+        // }
 
-        let deleted = query
+        let deleted = sqlx::query(&sql)
             .fetch_all(&mut self.inner)
             .await
             .map_err(|e| Error::SqlxError { source: e })?;
 
-
-//         let deleted = sqlx::query(
-//             r#"
-// DELETE FROM tombstone
-// WHERE id IN ($1)
-// RETURNING id;
-//         "#,
-//         )
-//         .bind(&ids[..]) // $1
-//         .fetch_all(&mut self.inner)
-//         .await
-//         .map_err(|e| Error::SqlxError { source: e })?;
+        //         let deleted = sqlx::query(
+        //             r#"
+        // DELETE FROM tombstone
+        // WHERE id IN ($1)
+        // RETURNING id;
+        //         "#,
+        //         )
+        //         .bind(&ids[..]) // $1
+        //         .fetch_all(&mut self.inner)
+        //         .await
+        //         .map_err(|e| Error::SqlxError { source: e })?;
 
         Ok(deleted.len())
     }
