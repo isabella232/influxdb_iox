@@ -1308,7 +1308,7 @@ WHERE id IN (?)
 RETURNING id;
         "#,
         )
-        .bind(&ids[..]) // $1
+        .bind(&ids) // $1
         .fetch_all(&mut self.inner)
         .await
         .map_err(|e| Error::SqlxError { source: e })?;
