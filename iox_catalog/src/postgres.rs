@@ -1304,7 +1304,7 @@ ORDER BY id;
         let deleted = sqlx::query(
             r#"
 DELETE FROM tombstone
-WHERE id IN (1, 2)
+WHERE id IN (?)
 RETURNING id;
         "#,
         )
