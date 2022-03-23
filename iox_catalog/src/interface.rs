@@ -442,7 +442,8 @@ pub trait TombstoneRepo: Send + Sync {
         sequence_number: SequenceNumber,
     ) -> Result<Vec<Tombstone>>;
 
-    /// Removed given tombstones
+    /// Remove given tombstones. This assumed all processed tombstones referencing to
+    /// these given tombstoes were removed
     /// Return number of deleted rows
     async fn remove(&mut self, tombstone_ids: &[TombstoneId]) -> Result<usize>;
 }
@@ -1347,13 +1348,13 @@ pub(crate) mod test_helpers {
 
         // test list_by_table
         let listed = repos.tombstones().list_by_table(table.id).await.unwrap();
-        assert_eq!(vec![t1, t3], listed);
+        assert_eq!(vec![t1.clone(), t3.clone()], listed);
         let listed = repos
             .tombstones()
             .list_by_table(other_table.id)
             .await
             .unwrap();
-        assert_eq!(vec![t2], listed);
+        assert_eq!(vec![t2.clone()], listed);
 
         // test list_by_namespace
         let namespace2 = repos
@@ -1395,13 +1396,41 @@ pub(crate) mod test_helpers {
             .list_by_namespace(namespace2.id)
             .await
             .unwrap();
-        assert_eq!(vec![t4, t5], listed);
+        assert_eq!(vec![t4.clone(), t5.clone()], listed);
         let listed = repos
             .tombstones()
             .list_by_namespace(NamespaceId::new(i32::MAX))
             .await
             .unwrap();
         assert_eq!(Vec::<Tombstone>::new(), listed);
+
+        // test get_by_id
+        let ts = repos.tombstones().get_by_id(t1.id).await.unwrap().unwrap();
+        assert_eq!(ts, t1.clone());
+        let ts = repos.tombstones().get_by_id(t2.id).await.unwrap().unwrap();
+        assert_eq!(ts, t2.clone());
+        let ts = repos
+            .tombstones()
+            .get_by_id(TombstoneId::new(
+                t1.id.get() + t2.id.get() + t3.id.get() + t4.id.get() + t5.id.get(),
+            )) // not exist id
+            .await
+            .unwrap();
+        assert!(ts.is_none());
+
+        // test remove
+        let count = repos.tombstones().remove(&[t1.id, t3.id]).await.unwrap();
+        assert_eq!(count, 2);
+        let ts = repos.tombstones().get_by_id(t1.id).await.unwrap();
+        assert!(ts.is_none()); // no longer there
+        let ts = repos.tombstones().get_by_id(t3.id).await.unwrap();
+        assert!(ts.is_none()); // no longer there
+        let ts = repos.tombstones().get_by_id(t2.id).await.unwrap().unwrap();
+        assert_eq!(ts, t2.clone()); // still there
+        let ts = repos.tombstones().get_by_id(t4.id).await.unwrap().unwrap();
+        assert_eq!(ts, t4.clone()); // still there
+        let ts = repos.tombstones().get_by_id(t5.id).await.unwrap().unwrap();
+        assert_eq!(ts, t5.clone()); // still there
     }
 
     async fn test_parquet_file(catalog: Arc<dyn Catalog>) {

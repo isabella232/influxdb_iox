@@ -846,13 +846,13 @@ impl TombstoneRepo for MemTxn {
     async fn remove(&mut self, tombstone_ids: &[TombstoneId]) -> Result<usize> {
         let stage = self.stage();
 
-        let len = stage.processed_tombstones.len();
+        let len = stage.tombstones.len();
 
         stage
             .tombstones
-            .retain(|ts| tombstone_ids.iter().find(|id| **id == ts.id).is_none());
+            .retain(|ts| !tombstone_ids.iter().any(|id| *id == ts.id));
 
-        Ok(len - stage.processed_tombstones.len())
+        Ok(len - stage.tombstones.len())
     }
 }
 
@@ -1154,12 +1154,9 @@ impl ProcessedTombstoneRepo for MemTxn {
 
         let len = stage.processed_tombstones.len();
 
-        stage.processed_tombstones.retain(|pt| {
-            tombstone_ids
-                .iter()
-                .find(|id| **id == pt.tombstone_id)
-                .is_none()
-        });
+        stage
+            .processed_tombstones
+            .retain(|pt| !tombstone_ids.iter().any(|id| *id == pt.tombstone_id));
 
         Ok(len - stage.processed_tombstones.len())
     }
