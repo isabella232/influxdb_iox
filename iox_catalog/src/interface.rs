@@ -507,7 +507,7 @@ pub trait ParquetFileRepo: Send + Sync {
     async fn count(&mut self) -> Result<i64>;
 
     /// return count of files of given tableId and sequenceId
-    async fn count_by_table_and_sequencer(
+    async fn count_by_overlaps(
         &mut self,
         table_id: TableId,
         sequencer_id: SequencerId,
@@ -1431,6 +1431,9 @@ pub(crate) mod test_helpers {
         assert_eq!(ts, t4.clone()); // still there
         let ts = repos.tombstones().get_by_id(t5.id).await.unwrap().unwrap();
         assert_eq!(ts, t5.clone()); // still there
+
+        // test count_by_overlaps
+
     }
 
     async fn test_parquet_file(catalog: Arc<dyn Catalog>) {

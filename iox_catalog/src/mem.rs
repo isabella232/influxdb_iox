@@ -1036,7 +1036,7 @@ impl ParquetFileRepo for MemTxn {
         Ok(count_i64.unwrap())
     }
 
-    async fn count_by_table_and_sequencer(
+    async fn count_by_overlaps(
         &mut self,
         table_id: TableId,
         sequencer_id: SequencerId,

@@ -1301,17 +1301,31 @@ ORDER BY id;
 
     async fn remove(&mut self, tombstone_ids: &[TombstoneId]) -> Result<usize> {
         let ids: Vec<_> = tombstone_ids.iter().map(|t| t.get()).collect();
-        let deleted = sqlx::query(
-            r#"
-DELETE FROM tombstone
-WHERE id IN (?)
-RETURNING id;
-        "#,
-        )
-        .bind(&ids) // $1
-        .fetch_all(&mut self.inner)
-        .await
-        .map_err(|e| Error::SqlxError { source: e })?;
+        let sql = format!("DELETE FROM tombstone WHERE id in({}) RETURNING id;", 
+           ids
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<&str>>()
+            .join(",")
+        );
+        let deleted = sqlx::query(&sql)
+            .bind(&ids[..]) // For all ?
+            .fetch_all(&mut self.inner)
+            .await
+            .map_err(|e| Error::SqlxError { source: e })?;
+
+
+//         let deleted = sqlx::query(
+//             r#"
+// DELETE FROM tombstone
+// WHERE id IN ($1)
+// RETURNING id;
+//         "#,
+//         )
+//         .bind(&ids[..]) // $1
+//         .fetch_all(&mut self.inner)
+//         .await
+//         .map_err(|e| Error::SqlxError { source: e })?;
 
         Ok(deleted.len())
     }
@@ -1528,7 +1542,7 @@ RETURNING id;
         Ok(read_result.count)
     }
 
-    async fn count_by_table_and_sequencer(
+    async fn count_by_overlaps(
         &mut self,
         table_id: TableId,
         sequencer_id: SequencerId,

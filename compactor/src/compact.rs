@@ -780,7 +780,7 @@ impl Compactor {
         // Get number of non-deleted parquet files of the same tableId & sequencerId that overlap with the tombsotne time range
         let count_pf = repos
             .parquet_files()
-            .count_by_table_and_sequencer(
+            .count_by_overlaps(
                 tombstone.table_id,
                 tombstone.sequencer_id,
                 tombstone.min_time,
