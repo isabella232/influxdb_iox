@@ -7,7 +7,8 @@ use arrow::{
 use bytes::Bytes;
 use data_types2::{
     ColumnType, KafkaPartition, KafkaTopic, Namespace, ParquetFile, ParquetFileParams, Partition,
-    QueryPool, SequenceNumber, Sequencer, Table, Timestamp, Tombstone,
+    QueryPool, SequenceNumber, Sequencer, SequencerId, Table, TableId, Timestamp, Tombstone,
+    TombstoneId,
 };
 use iox_catalog::{interface::Catalog, mem::MemCatalog};
 use iox_object_store::{IoxObjectStore, ParquetFilePath};
@@ -108,6 +109,43 @@ impl TestCatalog {
             query_pool,
             namespace,
         })
+    }
+
+    /// return number of tombstones of a given table
+    pub async fn count_tombstones_for_table(self: &Arc<Self>, table_id: TableId) -> usize {
+        let ts = self
+            .catalog
+            .repositories()
+            .await
+            .tombstones()
+            .list_by_table(table_id)
+            .await
+            .unwrap();
+        ts.len()
+    }
+
+    /// return number of processed tombstones of a tombstones
+    pub async fn count_processed_tombstones(self: &Arc<Self>, tombstone_id: TombstoneId) -> i64 {
+        self.catalog
+            .repositories()
+            .await
+            .processed_tombstones()
+            .count_by_tombstone_id(tombstone_id)
+            .await
+            .unwrap()
+    }
+
+    /// Count level 0 files
+    pub async fn count_level_0_files(self: &Arc<Self>, sequencer_id: SequencerId) -> usize {
+        let level_0 = self
+            .catalog
+            .repositories()
+            .await
+            .parquet_files()
+            .level_0(sequencer_id)
+            .await
+            .unwrap();
+        level_0.len()
     }
 }
 
