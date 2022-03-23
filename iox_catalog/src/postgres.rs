@@ -1300,16 +1300,21 @@ ORDER BY id;
     }
 
     async fn remove(&mut self, tombstone_ids: &[TombstoneId]) -> Result<usize> {
+
         let ids: Vec<_> = tombstone_ids.iter().map(|t| t.get()).collect();
+
         let sql = format!("DELETE FROM tombstone WHERE id in({}) RETURNING id;", 
-           ids
-            .iter()
+           (0..ids.len())
             .map(|_| "?")
             .collect::<Vec<&str>>()
             .join(",")
         );
-        let deleted = sqlx::query(&sql)
-            .bind(&ids[..]) // For all ?
+        let mut query = sqlx::query(&sql);
+        for i in 0..ids.len() {
+            query = query.bind(ids[i]);
+        }
+
+        let deleted = query
             .fetch_all(&mut self.inner)
             .await
             .map_err(|e| Error::SqlxError { source: e })?;
