@@ -916,16 +916,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_compact_two_files() {
-        // let ids: Vec<i64> = vec![1, 4, 8];
-        // let sql = format!(
-        //     "DELETE FROM tombstone WHERE id in({}) RETURNING id;",
-        //     ids.iter()
-        //         .map(|id| id.to_string())
-        //         .collect::<Vec<_>>()
-        //         .join(",")
-        // );
-        // println!("sql: {}", sql);
-
         let catalog = TestCatalog::new();
 
         let lp1 = vec![

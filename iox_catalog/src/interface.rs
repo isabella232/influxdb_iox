@@ -620,6 +620,7 @@ pub(crate) mod test_helpers {
         test_parquet_file_compaction_level_0(Arc::clone(&catalog)).await;
         test_parquet_file_compaction_level_1(Arc::clone(&catalog)).await;
         test_update_to_compaction_level_1(Arc::clone(&catalog)).await;
+        test_processed_tombstones(Arc::clone(&catalog)).await;
         test_txn_isolation(Arc::clone(&catalog)).await;
         test_txn_drop(Arc::clone(&catalog)).await;
 
@@ -1332,8 +1333,8 @@ pub(crate) mod test_helpers {
                 table.id,
                 sequencer.id,
                 SequenceNumber::new(3),
-                min_time,
-                max_time,
+                min_time.add(10),
+                max_time.add(10),
                 "sdf",
             )
             .await
@@ -1373,8 +1374,8 @@ pub(crate) mod test_helpers {
                 table2.id,
                 sequencer.id,
                 SequenceNumber::new(1),
-                min_time,
-                max_time,
+                min_time.add(10),
+                max_time.add(10),
                 "whatevs",
             )
             .await
@@ -1385,8 +1386,8 @@ pub(crate) mod test_helpers {
                 table2.id,
                 sequencer.id,
                 SequenceNumber::new(2),
-                min_time,
-                max_time,
+                min_time.add(10),
+                max_time.add(10),
                 "foo",
             )
             .await
@@ -1431,8 +1432,6 @@ pub(crate) mod test_helpers {
         assert_eq!(ts, t4.clone()); // still there
         let ts = repos.tombstones().get_by_id(t5.id).await.unwrap().unwrap();
         assert_eq!(ts, t5.clone()); // still there
-
-        // test count_by_overlaps
     }
 
     async fn test_parquet_file(catalog: Arc<dyn Catalog>) {
@@ -1470,9 +1469,6 @@ pub(crate) mod test_helpers {
             .await
             .unwrap();
 
-        let min_time = Timestamp::new(1);
-        let max_time = Timestamp::new(10);
-
         let parquet_file_params = ParquetFileParams {
             sequencer_id: sequencer.id,
             table_id: partition.table_id,
@@ -1480,8 +1476,8 @@ pub(crate) mod test_helpers {
             object_store_id: Uuid::new_v4(),
             min_sequence_number: SequenceNumber::new(10),
             max_sequence_number: SequenceNumber::new(140),
-            min_time,
-            max_time,
+            min_time: Timestamp::new(1),
+            max_time: Timestamp::new(10),
             file_size_bytes: 1337,
             parquet_metadata: b"md1".to_vec(),
             row_count: 0,
@@ -1507,6 +1503,8 @@ pub(crate) mod test_helpers {
             object_store_id: Uuid::new_v4(),
             min_sequence_number: SequenceNumber::new(45),
             max_sequence_number: SequenceNumber::new(200),
+            min_time: Timestamp::new(50),
+            max_time: Timestamp::new(60),
             ..parquet_file_params.clone()
         };
         let other_file = repos.parquet_files().create(other_params).await.unwrap();
@@ -1586,6 +1584,8 @@ pub(crate) mod test_helpers {
             table_id: partition2.table_id,
             partition_id: partition2.id,
             object_store_id: Uuid::new_v4(),
+            min_time: Timestamp::new(1),
+            max_time: Timestamp::new(10),
             ..parquet_file_params
         };
         let f1 = repos
@@ -1596,9 +1596,15 @@ pub(crate) mod test_helpers {
 
         let f2_params = ParquetFileParams {
             object_store_id: Uuid::new_v4(),
+            min_time: Timestamp::new(50),
+            max_time: Timestamp::new(60),
             ..f1_params
         };
-        let f2 = repos.parquet_files().create(f2_params).await.unwrap();
+        let f2 = repos
+            .parquet_files()
+            .create(f2_params.clone())
+            .await
+            .unwrap();
         let files = repos
             .parquet_files()
             .list_by_namespace_not_to_delete(namespace2.id)
@@ -1606,13 +1612,27 @@ pub(crate) mod test_helpers {
             .unwrap();
         assert_eq!(vec![f1.clone(), f2.clone()], files);
 
+        let f3_params = ParquetFileParams {
+            object_store_id: Uuid::new_v4(),
+            min_time: Timestamp::new(50),
+            max_time: Timestamp::new(60),
+            ..f2_params
+        };
+        let f3 = repos.parquet_files().create(f3_params).await.unwrap();
+        let files = repos
+            .parquet_files()
+            .list_by_namespace_not_to_delete(namespace2.id)
+            .await
+            .unwrap();
+        assert_eq!(vec![f1.clone(), f2.clone(), f3.clone()], files);
+
         repos.parquet_files().flag_for_delete(f2.id).await.unwrap();
         let files = repos
             .parquet_files()
             .list_by_namespace_not_to_delete(namespace2.id)
             .await
             .unwrap();
-        assert_eq!(vec![f1.clone()], files);
+        assert_eq!(vec![f1.clone(), f3.clone()], files);
 
         let files = repos
             .parquet_files()
@@ -1620,6 +1640,63 @@ pub(crate) mod test_helpers {
             .await
             .unwrap();
         assert!(files.is_empty());
+
+        // test count_by_overlaps
+        let count = repos
+            .parquet_files()
+            .count_by_overlaps(
+                partition2.table_id,
+                sequencer.id,
+                Timestamp::new(11),
+                Timestamp::new(20),
+            )
+            .await
+            .unwrap();
+        assert_eq!(count, 0);
+        let count = repos
+            .parquet_files()
+            .count_by_overlaps(
+                partition2.table_id,
+                sequencer.id,
+                Timestamp::new(1),
+                Timestamp::new(10),
+            )
+            .await
+            .unwrap();
+        assert_eq!(count, 1);
+        let count = repos
+            .parquet_files()
+            .count_by_overlaps(
+                partition2.table_id,
+                sequencer.id,
+                Timestamp::new(7),
+                Timestamp::new(55),
+            )
+            .await
+            .unwrap();
+        assert_eq!(count, 2); // f2 is deleted and should not be counted
+        let count = repos
+            .parquet_files()
+            .count_by_overlaps(
+                partition2.table_id,
+                sequencer.id,
+                Timestamp::new(1),
+                Timestamp::new(100),
+            )
+            .await
+            .unwrap();
+        assert_eq!(count, 2);
+        let count = repos
+            .parquet_files()
+            .count_by_overlaps(
+                partition2.table_id,
+                sequencer.id,
+                Timestamp::new(15),
+                Timestamp::new(100),
+            )
+            .await
+            .unwrap();
+        assert_eq!(count, 1);
     }
 
     async fn test_parquet_file_compaction_level_0(catalog: Arc<dyn Catalog>) {
@@ -2071,6 +2148,179 @@ pub(crate) mod test_helpers {
             "\nlevel 1: {:#?}\nexpected: {:#?}",
             level_1, expected,
         );
+    }
+
+    async fn test_processed_tombstones(catalog: Arc<dyn Catalog>) {
+        let mut repos = catalog.repositories().await;
+        let kafka = repos.kafka_topics().create_or_get("foo").await.unwrap();
+        let pool = repos.query_pools().create_or_get("foo").await.unwrap();
+        let namespace = repos
+            .namespaces()
+            .create(
+                "namespace_processed_tombstone_test",
+                "inf",
+                kafka.id,
+                pool.id,
+            )
+            .await
+            .unwrap();
+        let table = repos
+            .tables()
+            .create_or_get("test_table", namespace.id)
+            .await
+            .unwrap();
+        let sequencer = repos
+            .sequencers()
+            .create_or_get(&kafka, KafkaPartition::new(1))
+            .await
+            .unwrap();
+        let partition = repos
+            .partitions()
+            .create_or_get("one", sequencer.id, table.id)
+            .await
+            .unwrap();
+
+        // parquet files
+        let parquet_file_params = ParquetFileParams {
+            sequencer_id: sequencer.id,
+            table_id: partition.table_id,
+            partition_id: partition.id,
+            object_store_id: Uuid::new_v4(),
+            min_sequence_number: SequenceNumber::new(1),
+            max_sequence_number: SequenceNumber::new(1),
+            min_time: Timestamp::new(100),
+            max_time: Timestamp::new(250),
+            file_size_bytes: 1337,
+            parquet_metadata: b"md1".to_vec(),
+            row_count: 0,
+            created_at: Timestamp::new(1),
+        };
+        let p1 = repos
+            .parquet_files()
+            .create(parquet_file_params.clone())
+            .await
+            .unwrap();
+        let parquet_file_params_2 = ParquetFileParams {
+            object_store_id: Uuid::new_v4(),
+            min_sequence_number: SequenceNumber::new(2),
+            max_sequence_number: SequenceNumber::new(3),
+            min_time: Timestamp::new(200),
+            max_time: Timestamp::new(300),
+            ..parquet_file_params
+        };
+        let p2 = repos
+            .parquet_files()
+            .create(parquet_file_params_2.clone())
+            .await
+            .unwrap();
+
+        // tombstones
+        let t1 = repos
+            .tombstones()
+            .create_or_get(
+                table.id,
+                sequencer.id,
+                SequenceNumber::new(10),
+                Timestamp::new(1),
+                Timestamp::new(10),
+                "whatevs",
+            )
+            .await
+            .unwrap();
+        let t2 = repos
+            .tombstones()
+            .create_or_get(
+                table.id,
+                sequencer.id,
+                SequenceNumber::new(11),
+                Timestamp::new(100),
+                Timestamp::new(110),
+                "whatevs",
+            )
+            .await
+            .unwrap();
+        let t3 = repos
+            .tombstones()
+            .create_or_get(
+                table.id,
+                sequencer.id,
+                SequenceNumber::new(12),
+                Timestamp::new(200),
+                Timestamp::new(210),
+                "whatevs",
+            )
+            .await
+            .unwrap();
+
+        // processed tombstones
+        // p1, t2
+        let _pt1 = repos
+            .processed_tombstones()
+            .create(p1.id, t2.id)
+            .await
+            .unwrap();
+        // p1, t3
+        let _pt2 = repos
+            .processed_tombstones()
+            .create(p1.id, t3.id)
+            .await
+            .unwrap();
+        // p2, t3
+        let _pt3 = repos
+            .processed_tombstones()
+            .create(p2.id, t3.id)
+            .await
+            .unwrap();
+
+        // test exits
+        let exist = repos
+            .processed_tombstones()
+            .exist(p1.id, t1.id)
+            .await
+            .unwrap();
+        assert!(!exist);
+        let exist = repos
+            .processed_tombstones()
+            .exist(p1.id, t2.id)
+            .await
+            .unwrap();
+        assert!(exist);
+
+        // test count
+        let count = repos.processed_tombstones().count().await.unwrap();
+        assert_eq!(count, 3);
+
+        // test count_by_tombstone_id
+        let count = repos
+            .processed_tombstones()
+            .count_by_tombstone_id(t1.id)
+            .await
+            .unwrap();
+        assert_eq!(count, 0);
+        let count = repos
+            .processed_tombstones()
+            .count_by_tombstone_id(t2.id)
+            .await
+            .unwrap();
+        assert_eq!(count, 1);
+        let count = repos
+            .processed_tombstones()
+            .count_by_tombstone_id(t3.id)
+            .await
+            .unwrap();
+        assert_eq!(count, 2);
+
+        // test remove
+        let count = repos.processed_tombstones().remove(&[t1.id]).await.unwrap();
+        assert_eq!(count, 0);
+        let count = repos
+            .processed_tombstones()
+            .remove(&[t2.id, t3.id])
+            .await
+            .unwrap();
+        assert_eq!(count, 3);
+        let count = repos.processed_tombstones().remove(&[t3.id]).await.unwrap();
+        assert_eq!(count, 0); // already deleted above
     }
 
     async fn test_txn_isolation(catalog: Arc<dyn Catalog>) {
