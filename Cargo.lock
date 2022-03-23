@@ -1935,9 +1935,9 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "hyper"
-version = "0.14.17"
+version = "0.14.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "043f0e083e9901b6cc658a77d1eb86f4fc650bbb977a4337dd63192826aa85dd"
+checksum = "b26ae0a80afebe130861d90abf98e3814a4f28a4c6ffeb5ab8ebb2be311e0ef2"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -2239,7 +2239,6 @@ dependencies = [
  "csv",
  "data_types",
  "data_types2",
- "datafusion 0.1.0",
  "db",
  "dml",
  "flate2",
@@ -2295,6 +2294,10 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "server",
+ "service_common",
+ "service_grpc_flight",
+ "service_grpc_influxrpc",
+ "service_grpc_testing",
  "snafu",
  "tempfile",
  "test_helpers",
@@ -2569,6 +2572,7 @@ dependencies = [
  "iox_catalog",
  "iox_object_store",
  "metric",
+ "mutable_batch",
  "mutable_batch_lp",
  "object_store",
  "parquet_file",
@@ -2928,9 +2932,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.14"
+version = "0.4.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
+checksum = "6389c490849ff5bc16be905ae24bc913a9c8892e19b2341dbc175e14c341c2b8"
 dependencies = [
  "cfg-if",
 ]
@@ -4185,6 +4189,7 @@ dependencies = [
  "query",
  "rand",
  "schema",
+ "service_common",
  "snafu",
  "thiserror",
  "time 0.1.0",
@@ -4237,10 +4242,13 @@ dependencies = [
  "data_types",
  "datafusion 0.1.0",
  "db",
+ "iox_tests",
  "metric",
+ "mutable_batch_lp",
  "object_store",
  "once_cell",
  "predicate",
+ "querier",
  "query",
  "schema",
  "snafu",
@@ -5084,6 +5092,7 @@ dependencies = [
  "rand",
  "regex",
  "router",
+ "service_common",
  "snafu",
  "test_helpers",
  "time 0.1.0",
@@ -5117,6 +5126,81 @@ dependencies = [
  "rand",
  "test_helpers",
  "tokio",
+]
+
+[[package]]
+name = "service_common"
+version = "0.1.0"
+dependencies = [
+ "datafusion 0.1.0",
+ "predicate",
+ "query",
+ "workspace-hack",
+]
+
+[[package]]
+name = "service_grpc_flight"
+version = "0.1.0"
+dependencies = [
+ "arrow",
+ "arrow-flight",
+ "data_types",
+ "datafusion 0.1.0",
+ "futures",
+ "observability_deps",
+ "pin-project",
+ "query",
+ "serde",
+ "serde_json",
+ "service_common",
+ "snafu",
+ "tokio",
+ "tonic",
+ "workspace-hack",
+]
+
+[[package]]
+name = "service_grpc_influxrpc"
+version = "0.1.0"
+dependencies = [
+ "arrow",
+ "async-trait",
+ "data_types",
+ "datafusion 0.1.0",
+ "futures",
+ "generated_types",
+ "influxdb_storage_client",
+ "metric",
+ "observability_deps",
+ "panic_logging",
+ "parking_lot 0.12.0",
+ "predicate",
+ "prost",
+ "query",
+ "regex",
+ "schema",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "service_common",
+ "service_grpc_testing",
+ "snafu",
+ "test_helpers",
+ "tokio",
+ "tokio-stream",
+ "tonic",
+ "trace_http",
+ "workspace-hack",
+]
+
+[[package]]
+name = "service_grpc_testing"
+version = "0.1.0"
+dependencies = [
+ "generated_types",
+ "observability_deps",
+ "tonic",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -6551,6 +6635,8 @@ dependencies = [
  "num-traits",
  "once_cell",
  "parquet",
+ "prost",
+ "prost-types",
  "rand",
  "regex",
  "regex-automata",
