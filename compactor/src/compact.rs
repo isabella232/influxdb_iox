@@ -775,9 +775,8 @@ mod tests {
     use super::*;
     use arrow_util::assert_batches_sorted_eq;
     use data_types2::{KafkaPartition, NamespaceId, ParquetFileParams, SequenceNumber};
-    use futures::{stream, StreamExt, TryStreamExt};
     use iox_tests::util::TestCatalog;
-    use object_store::path::Path;
+    use object_store::ObjectStoreTestConvenience;
     use query::test::{raw_data, TestChunk};
     use time::SystemProvider;
 
@@ -1399,16 +1398,6 @@ mod tests {
         assert_eq!(actual_pf2_tombstones, &[t3.id, t4.id]);
     }
 
-    async fn list_all(object_store: &DynObjectStore) -> Result<Vec<Path>, object_store::Error> {
-        object_store
-            .list(None)
-            .await?
-            .map_ok(|v| stream::iter(v).map(Ok))
-            .try_flatten()
-            .try_collect()
-            .await
-    }
-
     #[tokio::test]
     async fn persist_adds_to_object_store() {
         let catalog = TestCatalog::new();
@@ -1479,7 +1468,7 @@ mod tests {
         .await
         .unwrap();
 
-        let object_store_files = list_all(&*compactor.object_store).await.unwrap();
+        let object_store_files = compactor.object_store.list_all().await.unwrap();
         assert_eq!(object_store_files.len(), 1);
     }
 
