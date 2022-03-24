@@ -25,7 +25,7 @@ use query::{exec::Executor, QueryChunk};
 use snafu::{ensure, ResultExt, Snafu};
 use std::{
     cmp::{max, min},
-    collections::{BTreeMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     ops::DerefMut,
     sync::Arc,
 };
@@ -647,34 +647,62 @@ impl Compactor {
 
     /// Given a list of parquet files that come from the same Table Partition, group files together
     /// if their (min_time, max_time) ranges overlap. Does not preserve or guarantee any ordering.
-    fn overlapped_groups(mut parquet_files: Vec<ParquetFile>) -> Vec<Vec<ParquetFile>> {
-        let mut groups = Vec::with_capacity(parquet_files.len());
+    fn overlapped_groups(parquet_files: Vec<ParquetFile>) -> Vec<Vec<ParquetFile>> {
+        let num_files = parquet_files.len();
+        let mut grouper = Vec::with_capacity(num_files * 2);
 
-        // While there are still files not in any group
-        while !parquet_files.is_empty() {
-            // Start a group containing only the first file
-            let mut in_group = Vec::with_capacity(parquet_files.len());
-            in_group.push(parquet_files.swap_remove(0));
+        #[derive(PartialEq)]
+        enum StartEnd {
+            Start,
+            End,
+        }
 
-            // Start a group for the remaining files that don't overlap
-            let mut out_group = Vec::with_capacity(parquet_files.len());
+        struct GrouperRecord {
+            id: ParquetFileId,
+            start_end: StartEnd,
+            value: Timestamp,
+        }
 
-            // Consider each file; if it overlaps with any file in the current group, add it to
-            // the group. If not, add it to the non-overlapping group.
-            for file in parquet_files {
-                if in_group.iter().any(|group_file| {
-                    (file.min_time <= group_file.min_time && file.max_time >= group_file.min_time)
-                        || (file.min_time > group_file.min_time
-                            && file.min_time <= group_file.max_time)
-                }) {
-                    in_group.push(file);
-                } else {
-                    out_group.push(file);
-                }
+        for file in &parquet_files {
+            grouper.push(GrouperRecord {
+                id: file.id,
+                start_end: StartEnd::Start,
+                value: file.min_time,
+            });
+            grouper.push(GrouperRecord {
+                id: file.id,
+                start_end: StartEnd::End,
+                value: file.max_time,
+            });
+        }
+
+        grouper.sort_by_key(|gr| gr.value);
+
+        let mut id_to_group: HashMap<ParquetFileId, usize> = HashMap::new();
+
+        let mut cumulative_sum = 0;
+        let mut current_group_id = 0;
+
+        for gr in grouper {
+            cumulative_sum += match gr.start_end {
+                StartEnd::Start => 1,
+                StartEnd::End => -1,
+            };
+
+            if gr.start_end == StartEnd::Start && cumulative_sum == 1 {
+                current_group_id += 1;
             }
 
-            groups.push(in_group);
-            parquet_files = out_group;
+            id_to_group.insert(gr.id, current_group_id);
+        }
+
+        let mut groups: Vec<_> = (0..current_group_id)
+            .map(|_| Vec::with_capacity(num_files))
+            .collect();
+
+        for file in parquet_files {
+            let group = id_to_group.get(&file.id).expect("uh oh") - 1;
+            groups[group].push(file);
         }
 
         groups
@@ -779,7 +807,11 @@ mod tests {
     use iox_tests::util::TestCatalog;
     use object_store::path::Path;
     use query::test::{raw_data, TestChunk};
+    use std::sync::atomic::{AtomicI64, Ordering};
     use time::SystemProvider;
+
+    // Simulate unique ID generation
+    static NEXT_ID: AtomicI64 = AtomicI64::new(0);
 
     #[tokio::test]
     async fn test_compact_one_file() {
@@ -1082,8 +1114,9 @@ mod tests {
         max_time: i64,
         created_at: i64,
     ) -> ParquetFile {
+        let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
         ParquetFile {
-            id: ParquetFileId::new(0),
+            id: ParquetFileId::new(id),
             sequencer_id: SequencerId::new(0),
             table_id: TableId::new(0),
             partition_id: PartitionId::new(0),
