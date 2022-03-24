@@ -880,6 +880,7 @@ pub(crate) mod test_helpers {
             .await
             .unwrap();
         let parquet_file_params = ParquetFileParams {
+            namespace_id: namespace.id,
             sequencer_id: seq.id,
             table_id: t.id,
             partition_id: partition.id,
@@ -1454,6 +1455,7 @@ pub(crate) mod test_helpers {
 
         let parquet_file_params = ParquetFileParams {
             sequencer_id: sequencer.id,
+            namespace_id: namespace.id,
             table_id: partition.table_id,
             partition_id: partition.id,
             object_store_id: Uuid::new_v4(),
@@ -1666,6 +1668,7 @@ pub(crate) mod test_helpers {
 
         let parquet_file_params = ParquetFileParams {
             sequencer_id: sequencer.id,
+            namespace_id: namespace.id,
             table_id: partition.table_id,
             partition_id: partition.id,
             object_store_id: Uuid::new_v4(),
@@ -1881,6 +1884,7 @@ pub(crate) mod test_helpers {
 
         let parquet_file_params = ParquetFileParams {
             sequencer_id: sequencer.id,
+            namespace_id: namespace.id,
             table_id: partition.table_id,
             partition_id: partition.id,
             object_store_id: Uuid::new_v4(),
@@ -2009,6 +2013,7 @@ pub(crate) mod test_helpers {
         // Create a file with times entirely within the window
         let parquet_file_params = ParquetFileParams {
             sequencer_id: sequencer.id,
+            namespace_id: namespace.id,
             table_id: partition.table_id,
             partition_id: partition.id,
             object_store_id: Uuid::new_v4(),
@@ -2209,6 +2214,7 @@ pub(crate) mod test_helpers {
         // Create a file with times entirely within the window
         let parquet_file_params = ParquetFileParams {
             sequencer_id: sequencer.id,
+            namespace_id: namespace.id,
             table_id: partition.table_id,
             partition_id: partition.id,
             object_store_id: Uuid::new_v4(),
