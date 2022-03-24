@@ -111,6 +111,17 @@ impl TestCatalog {
         })
     }
 
+    /// return tombstones of a given table
+    pub async fn list_tombstones_by_table(self: &Arc<Self>, table_id: TableId) -> Vec<Tombstone> {
+        self.catalog
+            .repositories()
+            .await
+            .tombstones()
+            .list_by_table(table_id)
+            .await
+            .unwrap()
+    }
+
     /// return number of tombstones of a given table
     pub async fn count_tombstones_for_table(self: &Arc<Self>, table_id: TableId) -> usize {
         let ts = self
@@ -135,6 +146,20 @@ impl TestCatalog {
             .unwrap()
     }
 
+    /// List level 0 files
+    pub async fn list_level_0_files(
+        self: &Arc<Self>,
+        sequencer_id: SequencerId,
+    ) -> Vec<ParquetFile> {
+        self.catalog
+            .repositories()
+            .await
+            .parquet_files()
+            .level_0(sequencer_id)
+            .await
+            .unwrap()
+    }
+
     /// Count level 0 files
     pub async fn count_level_0_files(self: &Arc<Self>, sequencer_id: SequencerId) -> usize {
         let level_0 = self
@@ -146,6 +171,20 @@ impl TestCatalog {
             .await
             .unwrap();
         level_0.len()
+    }
+
+    /// List all non-deleted files
+    pub async fn list_by_table_not_to_delete(
+        self: &Arc<Self>,
+        table_id: TableId,
+    ) -> Vec<ParquetFile> {
+        self.catalog
+            .repositories()
+            .await
+            .parquet_files()
+            .list_by_table_not_to_delete(table_id)
+            .await
+            .unwrap()
     }
 }
 
@@ -331,6 +370,22 @@ impl TestPartition {
         min_time: i64,
         max_time: i64,
     ) -> Arc<TestParquetFile> {
+        self.create_parquet_file_with_min_max_and_creation_time(
+            lp, min_seq, max_seq, min_time, max_time, 1,
+        )
+        .await
+    }
+
+    /// Create a parquet for the partition
+    pub async fn create_parquet_file_with_min_max_and_creation_time(
+        self: &Arc<Self>,
+        lp: &str,
+        min_seq: i64,
+        max_seq: i64,
+        min_time: i64,
+        max_time: i64,
+        creation_time: i64,
+    ) -> Arc<TestParquetFile> {
         let mut repos = self.catalog.catalog.repositories().await;
 
         let (table, batch) = lp_to_mutable_batch(lp);
@@ -373,7 +428,7 @@ impl TestPartition {
             file_size_bytes: file_size_bytes as i64,
             parquet_metadata: parquet_metadata_bin,
             row_count: row_count as i64,
-            created_at: Timestamp::new(1),
+            created_at: Timestamp::new(creation_time),
         };
         let parquet_file = repos
             .parquet_files()

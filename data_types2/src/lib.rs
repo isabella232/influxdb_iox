@@ -664,7 +664,7 @@ pub struct PartitionInfo {
 }
 
 /// Data object for a tombstone.
-#[derive(Debug, Clone, PartialEq, sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, sqlx::FromRow)]
 pub struct Tombstone {
     /// the id of the tombstone
     pub id: TombstoneId,

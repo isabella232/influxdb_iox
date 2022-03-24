@@ -9,7 +9,10 @@ use parquet_file::{
     chunk::{new_parquet_chunk, ChunkMetrics, DecodedParquetFile},
     metadata::{IoxMetadata, IoxParquetMetaData},
 };
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::{BTreeMap, HashSet},
+    sync::Arc,
+};
 use time::TimeProvider;
 
 /// Wrapper of a group of parquet files and their tombstones that overlap in time and should be
@@ -63,6 +66,16 @@ impl ParquetFileWithTombstone {
         self.data.id
     }
 
+    /// Return all tombstones in hash map format
+    pub fn tombstones(&self) -> BTreeMap<TombstoneId, Tombstone> {
+        let mut ts_map = BTreeMap::new();
+        for ts in &self.tombstones {
+            ts_map.insert(ts.id, (*ts).clone());
+        }
+
+        ts_map
+    }
+
     /// Add more tombstones
     pub fn add_tombstones(&mut self, tombstones: Vec<Tombstone>) {
         self.tombstones.extend(tombstones);
@@ -105,7 +118,8 @@ impl ParquetFileWithTombstone {
 pub struct CompactedData {
     pub(crate) data: Vec<RecordBatch>,
     pub(crate) meta: IoxMetadata,
-    pub(crate) tombstone_ids: HashSet<TombstoneId>,
+    pub(crate) tombstones: BTreeMap<TombstoneId, Tombstone>,
+    //pub(crate) tombstone_ids: HashSet<TombstoneId>,
 }
 
 impl CompactedData {
@@ -113,12 +127,14 @@ impl CompactedData {
     pub fn new(
         data: Vec<RecordBatch>,
         meta: IoxMetadata,
-        tombstone_ids: HashSet<TombstoneId>,
+        tombstones: BTreeMap<TombstoneId, Tombstone>,
+        //tombstone_ids: HashSet<TombstoneId>,
     ) -> Self {
         Self {
             data,
             meta,
-            tombstone_ids,
+            tombstones,
+            //tombstone_ids,
         }
     }
 }
@@ -127,7 +143,8 @@ impl CompactedData {
 #[derive(Debug)]
 pub struct CatalogUpdate {
     pub(crate) meta: IoxMetadata,
-    pub(crate) tombstone_ids: HashSet<TombstoneId>,
+    pub(crate) tombstones: BTreeMap<TombstoneId, Tombstone>,
+    //pub(crate) tombstone_ids: HashSet<TombstoneId>,
     pub(crate) parquet_file: ParquetFileParams,
 }
 
@@ -137,12 +154,14 @@ impl CatalogUpdate {
         meta: IoxMetadata,
         file_size: usize,
         md: IoxParquetMetaData,
-        tombstone_ids: HashSet<TombstoneId>,
+        //tombstone_ids: HashSet<TombstoneId>,
+        tombstones: BTreeMap<TombstoneId, Tombstone>,
     ) -> Self {
         let parquet_file = meta.to_parquet_file(file_size, &md);
         Self {
             meta,
-            tombstone_ids,
+            //tombstone_ids,
+            tombstones,
             parquet_file,
         }
     }
