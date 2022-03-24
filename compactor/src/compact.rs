@@ -25,7 +25,7 @@ use query::{exec::Executor, QueryChunk};
 use snafu::{ensure, ResultExt, Snafu};
 use std::{
     cmp::{max, min},
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, HashSet},
     ops::DerefMut,
     sync::Arc,
 };
@@ -651,58 +651,45 @@ impl Compactor {
         let num_files = parquet_files.len();
         let mut grouper = Vec::with_capacity(num_files * 2);
 
-        #[derive(PartialEq)]
-        enum StartEnd {
+        enum StartEnd<I> {
             Start,
-            End,
+            End(I),
         }
 
-        struct GrouperRecord {
-            id: ParquetFileId,
-            start_end: StartEnd,
-            value: Timestamp,
+        struct GrouperRecord<I, V: PartialOrd> {
+            value: V,
+            start_end: StartEnd<I>,
         }
 
-        for file in &parquet_files {
+        for file in parquet_files {
             grouper.push(GrouperRecord {
-                id: file.id,
-                start_end: StartEnd::Start,
                 value: file.min_time,
+                start_end: StartEnd::Start,
             });
             grouper.push(GrouperRecord {
-                id: file.id,
-                start_end: StartEnd::End,
                 value: file.max_time,
+                start_end: StartEnd::End(file),
             });
         }
 
         grouper.sort_by_key(|gr| gr.value);
 
-        let mut id_to_group: HashMap<ParquetFileId, usize> = HashMap::new();
-
         let mut cumulative_sum = 0;
-        let mut current_group_id = 0;
+        let mut groups = Vec::with_capacity(num_files);
 
         for gr in grouper {
             cumulative_sum += match gr.start_end {
                 StartEnd::Start => 1,
-                StartEnd::End => -1,
+                StartEnd::End(_) => -1,
             };
 
-            if gr.start_end == StartEnd::Start && cumulative_sum == 1 {
-                current_group_id += 1;
+            if matches!(gr.start_end, StartEnd::Start) && cumulative_sum == 1 {
+                groups.push(Vec::with_capacity(num_files));
             }
 
-            id_to_group.insert(gr.id, current_group_id);
-        }
-
-        let mut groups: Vec<_> = (0..current_group_id)
-            .map(|_| Vec::with_capacity(num_files))
-            .collect();
-
-        for file in parquet_files {
-            let group = id_to_group.get(&file.id).expect("uh oh") - 1;
-            groups[group].push(file);
+            if let StartEnd::End(item) = gr.start_end {
+                groups.last_mut().expect("a start should have pushed at least one empty group").push(item);
+            }
         }
 
         groups
