@@ -418,13 +418,6 @@ impl Compactor {
             return Ok(compacted);
         }
 
-        // Collect all the tombstone IDs. One tombstone might be relevant to multiple parquet
-        // files in this set, so dedupe here.
-        // let tombstone_ids: HashSet<_> = overlapped_files
-        //     .iter()
-        //     .flat_map(|f| f.tombstone_ids())
-        //     .collect();
-
         // Keep the fist IoxMetadata to reuse same IDs and names
         let iox_metadata = overlapped_files[0].iox_metadata();
 
@@ -558,7 +551,7 @@ impl Compactor {
                 sort_key: None,
             };
 
-            let compacted_data = CompactedData::new(output_batches, meta, tombstone_map.clone()); // tombstone_ids.clone());
+            let compacted_data = CompactedData::new(output_batches, meta, tombstone_map.clone());
             compacted.push(compacted_data);
         }
 
@@ -721,7 +714,10 @@ impl Compactor {
             }
         }
 
-        // remove the tombstones
+        // Remove the tombstones
+        // Note (todo maybe): if the list of deleted tombstone_ids is long and
+        // make this transaction slow, we need to split them into many smaller lists
+        // and each will be removed in its own transaction.
         let mut txn = self
             .catalog
             .start_transaction()
@@ -1947,7 +1943,7 @@ mod tests {
         let mut tombstones = BTreeMap::new();
         tombstones.insert(t1.id, t1);
 
-        let compacted_data = CompactedData::new(data, meta, tombstones); // HashSet::from([t1.id]));
+        let compacted_data = CompactedData::new(data, meta, tombstones);
 
         Compactor::persist(
             &compacted_data.meta,

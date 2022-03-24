@@ -119,7 +119,6 @@ pub struct CompactedData {
     pub(crate) data: Vec<RecordBatch>,
     pub(crate) meta: IoxMetadata,
     pub(crate) tombstones: BTreeMap<TombstoneId, Tombstone>,
-    //pub(crate) tombstone_ids: HashSet<TombstoneId>,
 }
 
 impl CompactedData {
@@ -128,13 +127,11 @@ impl CompactedData {
         data: Vec<RecordBatch>,
         meta: IoxMetadata,
         tombstones: BTreeMap<TombstoneId, Tombstone>,
-        //tombstone_ids: HashSet<TombstoneId>,
     ) -> Self {
         Self {
             data,
             meta,
             tombstones,
-            //tombstone_ids,
         }
     }
 }
@@ -144,7 +141,6 @@ impl CompactedData {
 pub struct CatalogUpdate {
     pub(crate) meta: IoxMetadata,
     pub(crate) tombstones: BTreeMap<TombstoneId, Tombstone>,
-    //pub(crate) tombstone_ids: HashSet<TombstoneId>,
     pub(crate) parquet_file: ParquetFileParams,
 }
 
@@ -154,13 +150,11 @@ impl CatalogUpdate {
         meta: IoxMetadata,
         file_size: usize,
         md: IoxParquetMetaData,
-        //tombstone_ids: HashSet<TombstoneId>,
         tombstones: BTreeMap<TombstoneId, Tombstone>,
     ) -> Self {
         let parquet_file = meta.to_parquet_file(file_size, &md);
         Self {
             meta,
-            //tombstone_ids,
             tombstones,
             parquet_file,
         }

@@ -442,9 +442,9 @@ pub trait TombstoneRepo: Send + Sync {
         sequence_number: SequenceNumber,
     ) -> Result<Vec<Tombstone>>;
 
-    /// Remove given tombstones. This assumed all processed tombstones referencing to
-    /// these given tombstoes were removed
-    /// Return number of deleted rows
+    /// Remove given tombstones and return number of deleted rows.
+    /// This assumes all processed tombstones referencing to
+    /// these given tombstoes were already removed
     async fn remove(&mut self, tombstone_ids: &[TombstoneId]) -> Result<usize>;
 
     /// Return all tombstones that have:
@@ -2507,7 +2507,7 @@ pub(crate) mod test_helpers {
             .await
             .unwrap();
 
-        // test exits
+        // test exist
         let exist = repos
             .processed_tombstones()
             .exist(p1.id, t1.id)
@@ -2554,8 +2554,9 @@ pub(crate) mod test_helpers {
             .await
             .unwrap();
         assert_eq!(count, 3);
+        // remove not existing one
         let count = repos.processed_tombstones().remove(&[t3.id]).await.unwrap();
-        assert_eq!(count, 0); // already deleted above
+        assert_eq!(count, 0);
     }
 
     async fn test_txn_isolation(catalog: Arc<dyn Catalog>) {
