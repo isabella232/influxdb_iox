@@ -154,8 +154,8 @@ impl TestConfig {
     pub fn with_existing_object_store(mut self, other: &TestConfig) -> Self {
         // copy a reference to the temp dir, if any
         self.object_store_dir = other.object_store_dir.clone();
-        self.copy_env("INFLUXDB_IOX_OBJECT_STORE", &other)
-            .copy_env("INFLUXDB_IOX_DB_DIR", &other)
+        self.copy_env("INFLUXDB_IOX_OBJECT_STORE", other)
+            .copy_env("INFLUXDB_IOX_DB_DIR", other)
     }
 
     /// Get the test config's server type.
